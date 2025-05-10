@@ -42,7 +42,6 @@ public class CameraController : MonoBehaviour
         }
 
         // 初始化目标位置和缩放
-        targetPosition = transform.position;
         targetZoom = cam.orthographic ? cam.orthographicSize : transform.position.y;
         targetRotationY = transform.eulerAngles.y;
 
