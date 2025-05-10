@@ -1,0 +1,204 @@
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+public class CameraController : MonoBehaviour
+{
+    [Header("移动设置")]
+    public float moveSpeed = 10f;        // 移动速度
+    public float rotationSpeed = 50f;    // 旋转速度
+    public float zoomSpeed = 15f;        // 缩放速度
+    public float smoothTime = 0.1f;      // 平滑过渡时间
+
+    [Header("边界设置")]
+    public bool useBoundaries = true;    // 是否使用边界限制
+    public float minHeight = 2f;         // 最小高度
+    public float maxHeight = 50f;        // 最大高度
+    public float groundOffset = 0.5f;    // 地面偏移量，防止摄像机进入地面
+
+    // 输入系统引用
+    private InputAction moveAction;      // 移动输入
+    private InputAction rotateAction;    // 旋转输入
+    private InputAction zoomAction;      // 缩放输入
+
+    // 平滑移动变量
+    private Vector3 currentVelocity = Vector3.zero;
+    private Vector3 targetPosition;
+    private float currentZoomVelocity = 0f;
+    private float targetZoom = 0f;
+    private float currentRotationVelocity = 0f;
+    private float targetRotationY = 0f;
+
+    // 摄像机引用
+    private Camera cam;
+
+    private void Awake()
+    {
+        // 获取摄像机引用
+        cam = GetComponent<Camera>();
+        if (cam == null)
+        {
+            cam = Camera.main;
+            Debug.LogWarning("CameraController: 未直接附加到Camera组件，使用主摄像机");
+        }
+
+        // 初始化目标位置和缩放
+        targetPosition = transform.position;
+        targetZoom = cam.orthographic ? cam.orthographicSize : transform.position.y;
+        targetRotationY = transform.eulerAngles.y;
+
+        // 创建输入动作
+        CreateInputActions();
+    }
+
+    private void CreateInputActions()
+    {
+        // 创建输入动作映射
+        var actionMap = new InputActionMap("CameraControls");
+
+        // 移动输入 (WASD/方向键)
+        moveAction = actionMap.AddAction("Move", binding: "<Keyboard>/w,<Keyboard>/s,<Keyboard>/a,<Keyboard>/d,<Keyboard>/upArrow,<Keyboard>/downArrow,<Keyboard>/leftArrow,<Keyboard>/rightArrow");
+        moveAction.AddCompositeBinding("2DVector")
+            .With("Up", "<Keyboard>/w")
+            .With("Down", "<Keyboard>/s")
+            .With("Left", "<Keyboard>/a")
+            .With("Right", "<Keyboard>/d");
+        moveAction.AddCompositeBinding("2DVector")
+            .With("Up", "<Keyboard>/upArrow")
+            .With("Down", "<Keyboard>/downArrow")
+            .With("Left", "<Keyboard>/leftArrow")
+            .With("Right", "<Keyboard>/rightArrow");
+
+        // 旋转输入 (QE)
+        rotateAction = actionMap.AddAction("Rotate");
+        rotateAction.AddCompositeBinding("1DAxis")
+            .With("Negative", "<Keyboard>/q")
+            .With("Positive", "<Keyboard>/e");
+
+        // 缩放输入 (鼠标滚轮)
+        zoomAction = actionMap.AddAction("Zoom", binding: "<Mouse>/scroll/y");
+
+        // 启用所有输入动作
+        moveAction.Enable();
+        rotateAction.Enable();
+        zoomAction.Enable();
+    }
+
+    private void OnDestroy()
+    {
+        // 销毁时禁用和释放输入动作
+        moveAction?.Dispose();
+        rotateAction?.Dispose();
+        zoomAction?.Dispose();
+    }
+
+    private void Update()
+    {
+        HandleMovement();
+        HandleRotation();
+        HandleZoom();
+        
+        // 应用平滑移动
+        ApplySmoothMovement();
+    }
+
+    private void HandleMovement()
+    {
+        // 获取移动输入
+        Vector2 moveInput = moveAction.ReadValue<Vector2>();
+        
+        if (moveInput.sqrMagnitude > 0.01f)
+        {
+            // 根据摄像机当前方向计算移动方向
+            Vector3 forward = new Vector3(transform.forward.x, 0, transform.forward.z).normalized;
+            Vector3 right = new Vector3(transform.right.x, 0, transform.right.z).normalized;
+            
+            // 计算目标位置
+            Vector3 moveDirection = (forward * moveInput.y + right * moveInput.x) * moveSpeed * Time.deltaTime;
+            targetPosition += moveDirection;
+        }
+    }
+
+    private void HandleRotation()
+    {
+        // 获取旋转输入
+        float rotateInput = rotateAction.ReadValue<float>();
+        
+        if (Mathf.Abs(rotateInput) > 0.01f)
+        {
+            // 计算目标旋转
+            targetRotationY += rotateInput * rotationSpeed * Time.deltaTime;
+        }
+    }
+
+    private void HandleZoom()
+    {
+        // 获取缩放输入 (鼠标滚轮)
+        float zoomInput = zoomAction.ReadValue<float>();
+        
+        if (Mathf.Abs(zoomInput) > 0.01f)
+        {
+            // 计算目标缩放 (反向滚动)
+            float zoomDelta = -zoomInput * zoomSpeed * Time.deltaTime;
+            
+            if (cam.orthographic)
+            {
+                // 正交相机使用正交大小
+                targetZoom = Mathf.Clamp(targetZoom + zoomDelta, minHeight, maxHeight);
+            }
+            else
+            {
+                // 透视相机使用Y位置
+                targetZoom = Mathf.Clamp(targetZoom + zoomDelta, minHeight, maxHeight);
+            }
+        }
+    }
+
+    private void ApplySmoothMovement()
+    {
+        // 应用平滑移动
+        transform.position = Vector3.SmoothDamp(transform.position, targetPosition, ref currentVelocity, smoothTime);
+        
+        // 应用平滑旋转
+        float currentRotationY = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetRotationY, ref currentRotationVelocity, smoothTime);
+        transform.rotation = Quaternion.Euler(transform.eulerAngles.x, currentRotationY, transform.eulerAngles.z);
+        
+        // 根据相机类型应用平滑缩放
+        if (cam.orthographic)
+        {
+            cam.orthographicSize = Mathf.SmoothDamp(cam.orthographicSize, targetZoom, ref currentZoomVelocity, smoothTime);
+        }
+        else
+        {
+            // 对于透视相机，调整Y位置作为缩放
+            Vector3 position = transform.position;
+            position.y = Mathf.SmoothDamp(position.y, targetZoom, ref currentZoomVelocity, smoothTime);
+            transform.position = position;
+        }
+        
+        // 应用边界限制
+        if (useBoundaries)
+        {
+            ApplyBoundaries();
+        }
+    }
+
+    private void ApplyBoundaries()
+    {
+        // 限制高度
+        Vector3 position = transform.position;
+        
+        // 检测地面高度（如果有碰撞体）
+        if (Physics.Raycast(new Vector3(position.x, maxHeight, position.z), Vector3.down, out RaycastHit hit))
+        {
+            float minAllowedHeight = hit.point.y + groundOffset;
+            position.y = Mathf.Max(position.y, minAllowedHeight);
+        }
+        
+        // 应用高度限制
+        position.y = Mathf.Clamp(position.y, minHeight, maxHeight);
+        
+        // 更新目标位置和当前位置
+        targetPosition.y = position.y;
+        transform.position = position;
+    }
+}
