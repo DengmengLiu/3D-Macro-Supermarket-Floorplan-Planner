@@ -14,6 +14,12 @@ public class CameraController : MonoBehaviour
     public float minHeight = 2f;         // 最小高度
     public float maxHeight = 50f;        // 最大高度
     public float groundOffset = 0.5f;    // 地面偏移量，防止摄像机进入地面
+    public float boundaryMargin = 5f;    // 边界外的额外移动空间
+
+    // 地板参考和边界
+    private GameObject floorObject;      // 地板对象引用
+    private Vector3 floorSize;           // 地板尺寸
+    private float minX, maxX, minZ, maxZ; // 移动边界
 
     // 输入系统引用
     private InputAction moveAction;      // 移动输入
@@ -183,9 +189,10 @@ public class CameraController : MonoBehaviour
 
     private void ApplyBoundaries()
     {
-        // 限制高度
+        // 获取当前位置
         Vector3 position = transform.position;
         
+        // 限制高度
         // 检测地面高度（如果有碰撞体）
         if (Physics.Raycast(new Vector3(position.x, maxHeight, position.z), Vector3.down, out RaycastHit hit))
         {
@@ -196,8 +203,35 @@ public class CameraController : MonoBehaviour
         // 应用高度限制
         position.y = Mathf.Clamp(position.y, minHeight, maxHeight);
         
+        // 如果地板已设置，应用XZ平面边界限制
+        if (floorObject != null)
+        {
+            position.x = Mathf.Clamp(position.x, minX, maxX);
+            position.z = Mathf.Clamp(position.z, minZ, maxZ);
+        }
+        
         // 更新目标位置和当前位置
-        targetPosition.y = position.y;
+        targetPosition = new Vector3(
+            Mathf.Clamp(targetPosition.x, minX, maxX),
+            targetPosition.y,
+            Mathf.Clamp(targetPosition.z, minZ, maxZ)
+        );
         transform.position = position;
+    }
+
+    // 设置边界限制的方法 (由FloorInitManager调用)
+    public void SetBoundaries(GameObject floor, float width, float length)
+    {
+        floorObject = floor;
+        floorSize = new Vector3(width, 0.1f, length);
+        
+        // 计算边界
+        // 地板坐标系中心在中央，边界扩展boundaryMargin个单位
+        minX = -width / 2 - boundaryMargin;
+        maxX = width / 2 + boundaryMargin;
+        minZ = -length / 2 - boundaryMargin;
+        maxZ = length / 2 + boundaryMargin;
+        
+        Debug.Log($"Camera boundaries set: X({minX} to {maxX}), Z({minZ} to {maxZ})");
     }
 }

@@ -17,6 +17,7 @@ public class FloorInitManager : MonoBehaviour
     public float maxSize = 10000f;        // 最大尺寸限制
 
     private GameObject currentFloor;      // 当前创建的地板
+    private CameraController cameraController; // 相机控制器引用
 
     void Start()
     {
@@ -31,7 +32,7 @@ public class FloorInitManager : MonoBehaviour
         {
             createButton.onClick.AddListener(CreateFloor);
         }
-
+        
         // 检查是否有地板预制件
         if (floorPrefab == null)
         {
@@ -41,18 +42,29 @@ public class FloorInitManager : MonoBehaviour
             floorPrefab.transform.localScale = new Vector3(1, 0.1f, 1);
             floorPrefab.SetActive(false);
         }
-
+        
         // 检查是否有材质
         if (floorMaterial == null && floorPrefab.GetComponent<Renderer>() != null)
         {
             floorMaterial = floorPrefab.GetComponent<Renderer>().material;
+        }
+        
+        // 获取相机控制器引用
+        Camera mainCamera = Camera.main;
+        if (mainCamera != null)
+        {
+            cameraController = mainCamera.GetComponent<CameraController>();
+            if (cameraController == null)
+            {
+                Debug.LogWarning("主相机上未找到CameraController组件");
+            }
         }
     }
 
     public void CreateFloor()
     {
         // 获取输入值
-        if (!float.TryParse(widthInput.text, out float width) ||
+        if (!float.TryParse(widthInput.text, out float width) || 
             !float.TryParse(lengthInput.text, out float length))
         {
             ShowError("Please enter a valid number");
@@ -81,10 +93,11 @@ public class FloorInitManager : MonoBehaviour
         // 创建新地板
         currentFloor = Instantiate(floorPrefab, Vector3.zero, Quaternion.identity);
         currentFloor.SetActive(true);
-
+        currentFloor.name = "SupermarketFloor";
+        
         // 调整地板大小
         currentFloor.transform.localScale = new Vector3(width, 0.1f, length);
-
+        
         // 如果有材质，应用材质
         if (floorMaterial != null)
         {
@@ -92,7 +105,7 @@ public class FloorInitManager : MonoBehaviour
             if (renderer != null)
             {
                 renderer.material = floorMaterial;
-
+                
                 // 调整材质贴图比例以匹配地板尺寸
                 renderer.material.mainTextureScale = new Vector2(width, length);
             }
@@ -103,10 +116,13 @@ public class FloorInitManager : MonoBehaviour
         {
             uiPanel.SetActive(false);
         }
-
+        
         // 调整相机位置以查看整个地板
         AdjustCameraPosition(width, length);
-
+        
+        // 设置相机边界
+        SetCameraBoundaries(width, length);
+        
         Debug.Log($"已创建地板，尺寸: {width} x {length}");
     }
 
@@ -121,26 +137,32 @@ public class FloorInitManager : MonoBehaviour
             Debug.LogError(message);
         }
     }
-
+    
     private void AdjustCameraPosition(float width, float length)
     {
         // 获取主相机
         Camera mainCamera = Camera.main;
         if (mainCamera == null)
             return;
-
+            
         // 计算最大尺寸
         float maxDimension = Mathf.Max(width, length);
-
+        
         // 计算相机高度和距离
         float cameraHeight = maxDimension * 0.5f;
         float cameraDistance = maxDimension * 0.5f;
-
-        // 计算地板中心位置
-        float floorCenterX = width / 2;
-        float floorCenterZ = length / 2;
-
-        // 设置相机位置和旋转，使其指向地板中心
-        mainCamera.transform.SetPositionAndRotation(new Vector3(floorCenterX, cameraHeight, floorCenterZ - cameraDistance), Quaternion.Euler(45, 0, 0));
+        
+        // 设置相机位置和旋转
+        mainCamera.transform.position = new Vector3(width/2, cameraHeight, -cameraDistance);
+        mainCamera.transform.rotation = Quaternion.Euler(45, 0, 0);
+    }
+    
+    private void SetCameraBoundaries(float width, float length)
+    {
+        // 如果找到相机控制器，设置边界
+        if (cameraController != null && currentFloor != null)
+        {
+            cameraController.SetBoundaries(currentFloor, width, length);
+        }
     }
 }
