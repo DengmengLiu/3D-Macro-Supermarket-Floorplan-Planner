@@ -57,7 +57,7 @@ namespace SupermarketPlanner.UI
             // 查找放置控制器（如果未指定）
             if (placementController == null)
             {
-                placementController = FindObjectOfType<PlacementController>();
+                placementController = FindFirstObjectByType<PlacementController>();
                 if (placementController == null)
                 {
                     Debug.LogWarning("未找到PlacementController组件，将无法放置组件");

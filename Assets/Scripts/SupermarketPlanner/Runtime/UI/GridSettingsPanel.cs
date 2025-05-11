@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 using SupermarketPlanner.Managers;
 using SupermarketPlanner.Controllers;
+using SupermarketPlanner.Services;
 
 namespace SupermarketPlanner.UI
 {
@@ -34,6 +35,7 @@ namespace SupermarketPlanner.UI
         // 管理器引用
         private GridManager gridManager;
         private PlacementController placementController;
+        private GridAlignmentService gridAlignmentService;
         
         // 当前值
         private bool currentGridVisibility = true;
@@ -43,7 +45,7 @@ namespace SupermarketPlanner.UI
         private void Start()
         {
             // 查找网格管理器
-            gridManager = FindObjectOfType<GridManager>();
+            gridManager = FindFirstObjectByType<GridManager>();
             if (gridManager == null)
             {
                 Debug.LogWarning("网格设置面板未找到GridManager组件");
@@ -53,10 +55,19 @@ namespace SupermarketPlanner.UI
             }
             
             // 查找放置控制器
-            placementController = FindObjectOfType<PlacementController>();
-            if (placementController == null && snapToGridToggle != null)
+            placementController = FindFirstObjectByType<PlacementController>();
+            
+            // 查找网格对齐服务
+            gridAlignmentService = FindFirstObjectByType<GridAlignmentService>();
+            if (gridAlignmentService == null && placementController != null)
             {
-                Debug.LogWarning("网格设置面板未找到PlacementController组件");
+                // 尝试从放置控制器获取网格对齐服务
+                gridAlignmentService = placementController.gridAlignmentService;
+            }
+            
+            if (gridAlignmentService == null && snapToGridToggle != null)
+            {
+                Debug.LogWarning("网格设置面板未找到GridAlignmentService组件");
                 // 禁用网格对齐设置
                 snapToGridToggle.interactable = false;
             }
@@ -97,10 +108,10 @@ namespace SupermarketPlanner.UI
             }
             
             // 初始化网格对齐开关
-            if (snapToGridToggle != null && placementController != null)
+            if (snapToGridToggle != null && gridAlignmentService != null)
             {
                 // 设置初始值
-                currentSnapToGrid = placementController.snapToGrid;
+                currentSnapToGrid = gridAlignmentService.enableGridAlignment;
                 snapToGridToggle.isOn = currentSnapToGrid;
                 
                 // 添加监听器
@@ -143,10 +154,15 @@ namespace SupermarketPlanner.UI
         /// </summary>
         public void OnSnapToGridChanged(bool snapToGrid)
         {
-            if (placementController != null)
+            if (gridAlignmentService != null)
             {
                 currentSnapToGrid = snapToGrid;
-                placementController.SetSnapToGrid(snapToGrid);
+                gridAlignmentService.SetGridAlignmentEnabled(snapToGrid);
+            }
+            else if (placementController != null)
+            {
+                currentSnapToGrid = snapToGrid;
+                gridAlignmentService.SetGridAlignmentEnabled(snapToGrid);
             }
         }
         
