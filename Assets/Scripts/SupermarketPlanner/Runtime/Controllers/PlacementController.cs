@@ -26,6 +26,15 @@ namespace SupermarketPlanner.Controllers
         [Tooltip("地板标签 - 用于确定是否在地板上")]
         public string floorTag = "Floor";
         
+        [Tooltip("边界检查点的边缘偏移")]
+        public float boundaryMargin = 0.05f;
+        
+        [Tooltip("位置平滑速度 (越高越平滑，但响应越慢)")]
+        public float positionSmoothSpeed = 15f;
+        
+        [Tooltip("网格吸附阈值 (防止在网格边界徘徊时闪烁)")]
+        public float gridSnapThreshold = 0.1f;
+        
         [Header("鼠标设置")]
         [Tooltip("鼠标射线检测层")]
         public LayerMask placementLayerMask;
@@ -35,6 +44,12 @@ namespace SupermarketPlanner.Controllers
         
         // 预览对象
         private GameObject previewObject;
+        
+        // 平滑位置过渡
+        private Vector3 targetPosition;
+        private Vector3 currentVelocity = Vector3.zero;
+        private Vector3 lastSnappedPosition;
+        private float positionSwitchTimer = 0f;
         
         // 放置状态
         private bool isPlacementMode = false;
@@ -56,6 +71,9 @@ namespace SupermarketPlanner.Controllers
         // 当前地板参考
         private GameObject currentFloor;
         private Bounds floorBounds;
+        
+        // 当前预览对象的边界点
+        private Vector3[] previewBoundaryPoints;
         
         private void Awake()
         {
@@ -234,8 +252,14 @@ namespace SupermarketPlanner.Controllers
             // 更新预览对象位置
             UpdatePreviewPosition();
             
+            // 应用平滑移动
+            ApplySmoothPosition();
+            
             // 检查是否可以放置
             CheckCanPlace();
+            
+            // 更新位置切换计时器
+            positionSwitchTimer += Time.deltaTime;
         }
         
         /// <summary>
@@ -272,7 +296,14 @@ namespace SupermarketPlanner.Controllers
                 ApplyPreviewMaterial(previewObject);
                 
                 // 调整位置到摄像机下方
-                previewObject.transform.position = mainCamera.transform.position + mainCamera.transform.forward * 5f;
+                Vector3 initialPosition = mainCamera.transform.position + mainCamera.transform.forward * 5f;
+                previewObject.transform.position = initialPosition;
+                targetPosition = initialPosition;
+                lastSnappedPosition = initialPosition;
+                currentVelocity = Vector3.zero;
+                
+                // 计算预览对象的边界点
+                CalculatePreviewBoundaryPoints();
                 
                 // 进入放置模式
                 isPlacementMode = true;
@@ -283,6 +314,100 @@ namespace SupermarketPlanner.Controllers
             {
                 Debug.LogError("无法开始放置：组件或预制件为空");
             }
+        }
+        
+        /// <summary>
+        /// 计算预览对象的边界点
+        /// </summary>
+        private void CalculatePreviewBoundaryPoints()
+        {
+            if (previewObject == null)
+                return;
+                
+            // 获取预览对象的边界
+            Bounds bounds = CalculateObjectBounds(previewObject);
+            
+            // 计算8个角点，再加上中心点和边缘中点，共17个点
+            previewBoundaryPoints = new Vector3[17];
+            
+            // 中心点
+            previewBoundaryPoints[0] = bounds.center;
+            
+            // 8个角点
+            Vector3 extents = bounds.extents;
+            previewBoundaryPoints[1] = bounds.center + new Vector3(extents.x, extents.y, extents.z);
+            previewBoundaryPoints[2] = bounds.center + new Vector3(extents.x, extents.y, -extents.z);
+            previewBoundaryPoints[3] = bounds.center + new Vector3(extents.x, -extents.y, extents.z);
+            previewBoundaryPoints[4] = bounds.center + new Vector3(extents.x, -extents.y, -extents.z);
+            previewBoundaryPoints[5] = bounds.center + new Vector3(-extents.x, extents.y, extents.z);
+            previewBoundaryPoints[6] = bounds.center + new Vector3(-extents.x, extents.y, -extents.z);
+            previewBoundaryPoints[7] = bounds.center + new Vector3(-extents.x, -extents.y, extents.z);
+            previewBoundaryPoints[8] = bounds.center + new Vector3(-extents.x, -extents.y, -extents.z);
+            
+            // 边缘中点 - X轴边缘
+            previewBoundaryPoints[9] = bounds.center + new Vector3(extents.x, 0, 0);
+            previewBoundaryPoints[10] = bounds.center + new Vector3(-extents.x, 0, 0);
+            
+            // 边缘中点 - Z轴边缘
+            previewBoundaryPoints[11] = bounds.center + new Vector3(0, 0, extents.z);
+            previewBoundaryPoints[12] = bounds.center + new Vector3(0, 0, -extents.z);
+            
+            // 边缘中点 - 底部边缘中点（X方向）
+            previewBoundaryPoints[13] = bounds.center + new Vector3(extents.x, -extents.y, 0);
+            previewBoundaryPoints[14] = bounds.center + new Vector3(-extents.x, -extents.y, 0);
+            
+            // 边缘中点 - 底部边缘中点（Z方向）
+            previewBoundaryPoints[15] = bounds.center + new Vector3(0, -extents.y, extents.z);
+            previewBoundaryPoints[16] = bounds.center + new Vector3(0, -extents.y, -extents.z);
+        }
+        
+        /// <summary>
+        /// 计算对象的边界
+        /// </summary>
+        private Bounds CalculateObjectBounds(GameObject obj)
+        {
+            // 初始化一个空的边界
+            Bounds bounds = new Bounds(obj.transform.position, Vector3.zero);
+            
+            // 获取所有渲染器
+            Renderer[] renderers = obj.GetComponentsInChildren<Renderer>();
+            
+            if (renderers.Length > 0)
+            {
+                // 使用第一个渲染器的边界初始化
+                bounds = renderers[0].bounds;
+                
+                // 包含其他所有渲染器的边界
+                for (int i = 1; i < renderers.Length; i++)
+                {
+                    bounds.Encapsulate(renderers[i].bounds);
+                }
+            }
+            else
+            {
+                // 如果没有渲染器，尝试使用碰撞器
+                Collider[] colliders = obj.GetComponentsInChildren<Collider>();
+                
+                if (colliders.Length > 0)
+                {
+                    bounds = colliders[0].bounds;
+                    
+                    for (int i = 1; i < colliders.Length; i++)
+                    {
+                        bounds.Encapsulate(colliders[i].bounds);
+                    }
+                }
+                else
+                {
+                    // 如果既没有渲染器也没有碰撞器，使用默认尺寸
+                    bounds.size = obj.transform.localScale;
+                }
+            }
+            
+            // 应用一个小的外边距，确保边界点略大于实际对象
+            bounds.Expand(boundaryMargin);
+            
+            return bounds;
         }
         
         /// <summary>
@@ -336,9 +461,6 @@ namespace SupermarketPlanner.Controllers
             
             if (Physics.Raycast(ray, out RaycastHit hit, 1000f, placementLayerMask))
             {
-                // 检查是否击中地板
-                isOverFloor = IsPointOverFloor(hit.point);
-                
                 // 调整位置到射线碰撞点
                 Vector3 position = hit.point;
                 position.y = placementHeight;
@@ -346,63 +468,138 @@ namespace SupermarketPlanner.Controllers
                 // 如果启用了网格对齐且找到了网格管理器
                 if (snapToGrid && gridManager != null)
                 {
-                    position = gridManager.SnapToGrid(position);
+                    Vector3 snappedPosition = gridManager.SnapToGrid(position);
+                    
+                    // 检查是否需要切换到新的网格位置
+                    bool shouldSnapToNewPosition = ShouldSnapToNewPosition(snappedPosition);
+                    
+                    if (shouldSnapToNewPosition)
+                    {
+                        position = snappedPosition;
+                        lastSnappedPosition = snappedPosition;
+                        positionSwitchTimer = 0f;
+                    }
+                    else
+                    {
+                        // 保持在上一个网格位置
+                        position = lastSnappedPosition;
+                    }
                 }
-                else if (!isOverFloor)
+                
+                // 确保位置在地板边界内，根据预览对象的边界调整
+                position = AdjustPositionToStayWithinFloor(position);
+                
+                // 更新目标位置
+                targetPosition = position;
+            }
+        }
+        
+        /// <summary>
+        /// 决定是否应该切换到新的网格位置
+        /// </summary>
+        private bool ShouldSnapToNewPosition(Vector3 newSnappedPosition)
+        {
+            // 计算与上一个网格位置的距离
+            float distance = Vector3.Distance(newSnappedPosition, lastSnappedPosition);
+            
+            // 如果距离足够大，立即切换
+            if (distance >= gridManager.gridCellSize)
+            {
+                return true;
+            }
+            
+            // 如果处于相邻网格单元之间的边界区域，使用滞后切换避免抖动
+            if (distance > 0 && distance < gridManager.gridCellSize)
+            {
+                // 计算当前位置与两个网格点的距离
+                float distanceToNew = Vector3.Distance(targetPosition, newSnappedPosition);
+                float distanceToOld = Vector3.Distance(targetPosition, lastSnappedPosition);
+                
+                // 如果已经明显更接近新位置，或者鼠标一直保持在同一区域一段时间
+                if (distanceToNew < distanceToOld - gridSnapThreshold || positionSwitchTimer > 0.5f)
                 {
-                    // 如果不在地板上，将位置限制在地板边界内
-                    position = ClampPositionToFloor(position);
+                    return true;
                 }
-                
-                // 应用位置到预览对象
-                previewObject.transform.position = position;
             }
-            else
-            {
-                // 如果射线没有击中任何物体，假设不在地板上
-                isOverFloor = false;
-            }
+            
+            return false;
         }
         
         /// <summary>
-        /// 检查点是否在地板上方
+        /// 平滑应用位置变化
         /// </summary>
-        private bool IsPointOverFloor(Vector3 point)
+        private void ApplySmoothPosition()
         {
-            if (currentFloor == null)
-                return false;
+            if (previewObject == null)
+                return;
                 
-            // 检查点是否在地板边界内
-            bool isInBounds = floorBounds.Contains(new Vector3(point.x, floorBounds.center.y, point.z));
-                
-            // 也可以使用射线检测向下射线是否击中地板
-            bool hitFloor = false;
-            Ray downRay = new Ray(new Vector3(point.x, point.y + 1f, point.z), Vector3.down);
-            if (Physics.Raycast(downRay, out RaycastHit hit, 10f))
-            {
-                hitFloor = hit.collider.gameObject == currentFloor;
-            }
-                
-            return isInBounds || hitFloor;
+            // 使用SmoothDamp实现平滑移动
+            Vector3 smoothedPosition = Vector3.SmoothDamp(
+                previewObject.transform.position, 
+                targetPosition, 
+                ref currentVelocity, 
+                1f / positionSmoothSpeed
+            );
+            
+            // 应用平滑后的位置
+            previewObject.transform.position = smoothedPosition;
+            
+            // 更新边界点（因为位置改变）
+            CalculatePreviewBoundaryPoints();
         }
         
         /// <summary>
-        /// 将位置限制在地板边界内
+        /// 调整位置，确保对象完全在地板上
         /// </summary>
-        private Vector3 ClampPositionToFloor(Vector3 position)
+        private Vector3 AdjustPositionToStayWithinFloor(Vector3 proposedPosition)
         {
-            if (currentFloor == null)
-                return position;
+            if (previewObject == null || currentFloor == null)
+                return proposedPosition;
+            
+            // 应用提议的位置
+            Vector3 originalPosition = previewObject.transform.position;
+            previewObject.transform.position = proposedPosition;
+            
+            // 重新计算边界点
+            CalculatePreviewBoundaryPoints();
+            
+            // 检查边界点是否全部在地板上
+            Vector2 adjustment = Vector2.zero;
+            bool needsAdjustment = false;
+            
+            foreach (Vector3 point in previewBoundaryPoints)
+            {
+                // 仅检查X和Z坐标（水平面）
+                Vector3 floorPoint = new Vector3(point.x, floorBounds.center.y, point.z);
                 
-            // 获取地板边界的最小和最大点
-            Vector3 min = floorBounds.min;
-            Vector3 max = floorBounds.max;
-                
-            // 限制X和Z坐标在地板边界内
-            position.x = Mathf.Clamp(position.x, min.x, max.x);
-            position.z = Mathf.Clamp(position.z, min.z, max.z);
-                
-            return position;
+                if (!floorBounds.Contains(floorPoint))
+                {
+                    needsAdjustment = true;
+                    
+                    // 计算需要的调整量
+                    if (point.x < floorBounds.min.x)
+                        adjustment.x = Mathf.Max(adjustment.x, floorBounds.min.x - point.x);
+                    else if (point.x > floorBounds.max.x)
+                        adjustment.x = Mathf.Min(adjustment.x, floorBounds.max.x - point.x);
+                    
+                    if (point.z < floorBounds.min.z)
+                        adjustment.y = Mathf.Max(adjustment.y, floorBounds.min.z - point.z);
+                    else if (point.z > floorBounds.max.z)
+                        adjustment.y = Mathf.Min(adjustment.y, floorBounds.max.z - point.z);
+                }
+            }
+            
+            // 恢复原始位置
+            previewObject.transform.position = originalPosition;
+            
+            // 如果需要调整，应用调整量
+            if (needsAdjustment)
+            {
+                proposedPosition.x += adjustment.x;
+                proposedPosition.z += adjustment.y;
+            }
+            
+            return proposedPosition;
         }
         
         /// <summary>
@@ -410,18 +607,40 @@ namespace SupermarketPlanner.Controllers
         /// </summary>
         private void CheckCanPlace()
         {
-            // 首先检查是否在地板上
+            // 检查所有边界点是否都在地板上
+            isOverFloor = CheckAllBoundaryPointsOverFloor();
             canPlace = isOverFloor;
             
-            // 如果在地板上，可以添加更多条件检查，例如：
+            // 如果在地板上，还需检查是否与其他对象重叠
             if (canPlace)
             {
-                // 检查是否与其他对象重叠
                 canPlace = !CheckOverlap();
             }
             
             // 更新预览对象的外观以反映是否可以放置
             UpdatePreviewAppearance();
+        }
+        
+        /// <summary>
+        /// 检查所有边界点是否都在地板上
+        /// </summary>
+        private bool CheckAllBoundaryPointsOverFloor()
+        {
+            if (previewObject == null || currentFloor == null || previewBoundaryPoints == null)
+                return false;
+            
+            foreach (Vector3 point in previewBoundaryPoints)
+            {
+                // 对于每个点，检查是否在地板边界内
+                Vector3 floorPoint = new Vector3(point.x, floorBounds.center.y, point.z);
+                
+                if (!floorBounds.Contains(floorPoint))
+                {
+                    return false; // 只要有一个点不在地板上，就返回false
+                }
+            }
+            
+            return true; // 所有点都在地板上
         }
         
         /// <summary>
@@ -606,6 +825,16 @@ namespace SupermarketPlanner.Controllers
             {
                 // 围绕Y轴旋转90度
                 previewObject.transform.Rotate(0, 90, 0);
+                
+                // 旋转后重新计算边界点
+                CalculatePreviewBoundaryPoints();
+                
+                // 旋转后调整位置，确保仍然在地板内
+                Vector3 adjustedPosition = AdjustPositionToStayWithinFloor(previewObject.transform.position);
+                previewObject.transform.position = adjustedPosition;
+                targetPosition = adjustedPosition;
+                lastSnappedPosition = adjustedPosition;
+                currentVelocity = Vector3.zero;
             }
         }
         
@@ -615,6 +844,72 @@ namespace SupermarketPlanner.Controllers
         public void SetSnapToGrid(bool snap)
         {
             snapToGrid = snap;
+            
+            // 更新当前位置
+            if (previewObject != null)
+            {
+                // 获取当前位置
+                Vector3 currentPosition = previewObject.transform.position;
+                
+                // 如果开启了网格对齐，则立即对齐到最近的网格点
+                if (snap && gridManager != null)
+                {
+                    Vector3 snappedPosition = gridManager.SnapToGrid(currentPosition);
+                    targetPosition = snappedPosition;
+                    lastSnappedPosition = snappedPosition;
+                }
+                else
+                {
+                    // 如果关闭了网格对齐，维持当前位置
+                    targetPosition = currentPosition;
+                    lastSnappedPosition = currentPosition;
+                }
+                
+                // 重置速度
+                currentVelocity = Vector3.zero;
+            }
+        }
+        
+        /// <summary>
+        /// 设置位置平滑速度
+        /// </summary>
+        public void SetPositionSmoothSpeed(float speed)
+        {
+            positionSmoothSpeed = Mathf.Max(1f, speed);
+        }
+        
+        /// <summary>
+        /// 绘制调试信息
+        /// </summary>
+        private void OnDrawGizmos()
+        {
+            // 如果不在编辑器模式或不在放置模式，不绘制Gizmos
+            if (!isPlacementMode || previewObject == null || previewBoundaryPoints == null)
+                return;
+                
+            // 绘制预览对象的边界点
+            Gizmos.color = Color.yellow;
+            foreach (Vector3 point in previewBoundaryPoints)
+            {
+                Gizmos.DrawSphere(point, 0.05f);
+            }
+            
+            // 绘制地板边界
+            if (currentFloor != null)
+            {
+                Gizmos.color = Color.green;
+                Gizmos.DrawWireCube(floorBounds.center, floorBounds.size);
+            }
+            
+            // 如果启用了网格对齐，绘制目标位置和最后一个对齐位置
+            if (snapToGrid && gridManager != null)
+            {
+                Gizmos.color = Color.blue;
+                Gizmos.DrawSphere(targetPosition, 0.1f);
+                
+                Gizmos.color = Color.cyan;
+                Gizmos.DrawSphere(lastSnappedPosition, 0.1f);
+            }
         }
     }
 }
