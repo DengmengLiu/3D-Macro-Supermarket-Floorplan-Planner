@@ -4,87 +4,87 @@ using UnityEngine.UI;
 namespace SupermarketPlanner.Controllers
 {
     /// <summary>
-    /// 极简相机视角切换器 - 只在两个预设相机之间切换
+    /// Minimalist camera view switcher - only switches between two preset cameras
     /// </summary>
     public class CameraViewController : MonoBehaviour
     {
-        [Header("摄像机引用")]
-        [Tooltip("主摄像机（标准视角）")]
+        [Header("Camera reference")]
+        [Tooltip("Main camera (standard view)")]
         public Camera mainCamera;
-        
-        [Tooltip("俯视图摄像机")]
+
+        [Tooltip("Top view camera")]
         public Camera topViewCamera;
-        
-        [Header("UI 引用")]
-        [Tooltip("视角切换按钮")]
+
+        [Header("UI reference")]
+        [Tooltip("View switch button")]
         public Button viewToggleButton;
-        
-        // 当前是否为俯视图
+
+        // Is the current top view?
         private bool isTopView = false;
-        
-        // 缓存摄像机标签
+
+        // Cache camera tag
         private const string MAIN_CAMERA_TAG = "MainCamera";
-        
+
         private void Start()
         {
-            // 查找摄像机（如果未指定）
+            // Find the camera (if not specified)
             if (mainCamera == null)
                 mainCamera = Camera.main;
-                
+
             if (mainCamera == null)
             {
-                Debug.LogError("未找到主摄像机！视角控制器无法工作。");
+                Debug.LogError("Main camera not found! View controller cannot work.");
                 enabled = false;
                 return;
             }
-            
-            // 初始设置顶视图摄像机不可见
+
+            // Initially set the top view camera to be invisible
             if (topViewCamera != null)
                 topViewCamera.enabled = false;
-            
-            // 如果有视角切换按钮，设置点击事件
+
+            // If there is a view switch button, set the click event
             if (viewToggleButton != null)
             {
                 viewToggleButton.onClick.AddListener(ToggleView);
             }
         }
-        
+
         /// <summary>
-        /// 切换视角
+        /// Switch view
         /// </summary>
         public void ToggleView()
         {
             isTopView = !isTopView;
-            
+
             if (isTopView)
             {
-                // 切换到俯视图
+                // Switch to top view
                 if (mainCamera != null)
                     mainCamera.enabled = false;
-                
+
                 if (topViewCamera != null)
                     topViewCamera.enabled = true;
             }
             else
             {
-                // 切换到标准视图
+                // Switch to standard view
                 if (mainCamera != null)
                     mainCamera.enabled = true;
-                
+
                 if (topViewCamera != null)
                     topViewCamera.enabled = false;
             }
-            
-            // 确保Camera.main引用是正确的
+
+            // Make sure Camera.main reference is correct
             UpdateMainCameraReference();
         }
-        
+
         /// <summary>
-        /// 更新主摄像机引用
+        /// Update main camera reference
         /// </summary>
         private void UpdateMainCameraReference()
         {
-            // 当切换摄像机时，确保当前活跃的摄像机被标记为"MainCamera"
+            // When switching cameras, make sure the currently active camera is tagged as "MainCamera"
             if (isTopView)
             {
                 if (mainCamera.tag == MAIN_CAMERA_TAG)
@@ -102,9 +102,9 @@ namespace SupermarketPlanner.Controllers
                 mainCamera.tag = MAIN_CAMERA_TAG;
             }
         }
-        
+
         /// <summary>
-        /// 获取当前活跃的摄像机
+        /// Get the currently active camera
         /// </summary>
         public Camera GetActiveCamera()
         {
