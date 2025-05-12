@@ -77,6 +77,7 @@ namespace SupermarketPlanner.Controllers
                     validationService.allowedCollisionLayers = 1 << floorLayer;
                 }
             }
+            FindAnyObjectByType<CameraViewController>()?.GetComponent<CameraViewController>();
         }
 
         private void OnDisable()
@@ -248,15 +249,22 @@ namespace SupermarketPlanner.Controllers
             if (!isPlacementModeActive)
                 return;
 
-            // Get preview object
+            // 获取预览对象
             GameObject previewObject = previewManager.GetPreviewObject();
             if (previewObject == null)
                 return;
-            // Check if placement is possible using new validation service
+
+            // 使用当前活跃摄像机的射线进行碰撞检测
+            // 使用新的验证服务检查是否可以放置
             bool canPlace = validationService.CanPlace(previewObject);
+
             if (canPlace)
             {
                 PlaceCurrentComponent();
+            }
+            else
+            {
+                Debug.Log("无法放置：与其他对象碰撞");
             }
         }
         /// <summary>

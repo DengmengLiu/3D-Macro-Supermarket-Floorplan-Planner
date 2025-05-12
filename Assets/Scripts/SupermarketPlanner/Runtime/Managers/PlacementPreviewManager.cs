@@ -221,15 +221,15 @@ namespace SupermarketPlanner.Controllers
         private Vector3 GetWorldPosition(Vector2 screenPosition)
         {
             // Get the main camera
-            Camera mainCamera = Camera.main;
-            if (mainCamera == null)
+            Camera currentCamera = Camera.main;
+            if (currentCamera == null)
             {
-                Debug.LogError("Main camera not found");
+                Debug.LogError("未找到活跃的摄像机");
                 return Vector3.zero;
             }
 
             // Convert screen coordinates to rays
-            Ray ray = mainCamera.ScreenPointToRay(screenPosition);
+            Ray ray = currentCamera.ScreenPointToRay(screenPosition);
 
             // Replace with a fixed height method here
             // Get the intersection of the ray and the XZ plane
