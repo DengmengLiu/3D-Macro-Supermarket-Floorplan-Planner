@@ -10,6 +10,8 @@ This guide provides comprehensive instructions for using the 3D Supermarket Floo
 4. [Component Placement](#component-placement)
 5. [Grid Controls](#grid-controls)
 6. [Unique Features](#unique-features)
+7. [Code Structure](#code-structure)
+8. [Project Access](#project-access)
 
 ## Getting Started
 
@@ -89,4 +91,43 @@ Fine-tune your layout precision with the adjustable grid system:
 2. Finer grids (higher density) allow for more precise component placement
 3. Coarser grids (lower density) are better for rapid layout creation
 
+### Explanation of Original Features
+
+These unique features were specifically designed to address the practical needs of store owners and planners:
+
+**Top-Down View**: Store planning traditionally begins with a bird's-eye view. The toggle between orthogonal and top-down views mimics the natural workflow of professional store designers, allowing users to switch between big-picture planning (top-down) and immersive validation (perspective view). This dual-view approach helps store owners better visualize how their layout decisions.
+
+**Variable Grid System**: By making the grid density adjustable, users can work at different levels of precision as needed. When planning major section divisions, a coarse grid helps with quick, macro-level decisions. When fine-tuning shelving arrangements or checkout areas where space is at a premium, the ability to switch to a finer grid ensures optimal space utilization. This flexibility mirrors how real-world store planning evolves from rough zoning to precise fixture placement.
+
+Both features combine to give store owners professional planning capabilities that adapt to different phases of the design process.
+
+## Code Structure
+
+### Namespace Organization
+- **Controllers**: Handles user input and interactions
+- **Data**: Contains data models and structures
+- **Managers**: Global systems with application-wide scope
+- **Services**: Provides specialized functionality
+- **UI**: Manages interface elements
+
+### Key Systems
+- **Camera System**: Navigation and view switching
+- **Component System**: Defines and manages placeable objects
+- **Placement System**: Handles object placement and validation
+- **Grid System**: Creates visual grid and alignment functionality
+- **UI System**: User interface panels and menus
+
+### Design Approach
+- Uses singletons for global access (GridManager, ComponentManager)
+- Services provide modular, reusable functionality
+- Communication happens through events to reduce coupling
+
+This architecture ensures maintainability through separation of concerns and extensibility through modular design.
+
+## Project Access
+
 For additional help or to report issues, please contact the development team.
+
+You can access the project at the following link:
+- **Project URL**: [https://liudengmeng.itch.io/3d-macro-supermarket-floorplan-planner](https://liudengmeng.itch.io/3d-macro-supermarket-floorplan-planner)
+- **Access Password**: 3DMacro
