@@ -50,11 +50,10 @@ Navigate through your supermarket design using these camera controls:
 
 1. Click on a component in the menu to select it
 2. Move your mouse over the floor to see a preview of the component
-3. The preview will show green when placement is valid or red when invalid
+3. The preview will show blue when placement is valid or red when invalid
 4. **Left-click** to place the component
-5. Hold **Shift + Left-click** to place multiple copies of the same component
-6. Press **R** to rotate the component before placing
-7. **Right-click** or press **Escape** to cancel placement
+5. Press **R** to rotate the component before placing
+6. **Right-click** or press **Escape** to cancel placement
 
 ### Modifying Placed Components
 
@@ -77,28 +76,17 @@ The grid helps you align components precisely:
 
 The planner includes a convenient top-down view toggle that helps you see your layout from a bird's-eye perspective:
 
-1. Click the **View Toggle** button in the top-right corner of the screen
+1. Click the **View Toggle** button in the top-left corner of the screen
 2. The camera will smoothly transition between the perspective view and top-down view
 3. Use top-down view for precise placement and overall layout planning
-4. Return to perspective view for a more realistic visualization of your store
+4. Return to orthographic view for your store
 
 ### Adjustable Grid Density
 
 Fine-tune your layout precision with the adjustable grid system:
 
-1. Use the **+** and **-** keys to quickly increase or decrease grid density
-2. Choose from preset grid sizes (small, medium, large) in the Settings panel
-3. Finer grids (higher density) allow for more precise component placement
-4. Coarser grids (lower density) are better for rapid layout creation
-
-### Zone Mapping System
-
-Organize your store layout with color-coded zones:
-
-1. Access the **Zones** tab in the side menu
-2. Create zones by selecting a zone type and drawing on the floor
-3. Customize zone colors and names to represent different store areas (Produce, Dairy, etc.)
-4. Toggle zone visibility to focus on different aspects of your layout
-5. Use zones to visualize traffic flow and ensure optimal product placement
+1. Choose from preset grid sizes (small, medium, large) in the Settings panel
+2. Finer grids (higher density) allow for more precise component placement
+3. Coarser grids (lower density) are better for rapid layout creation
 
 For additional help or to report issues, please contact the development team.
