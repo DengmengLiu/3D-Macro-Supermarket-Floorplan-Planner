@@ -4,48 +4,48 @@ using System.Collections.Generic;
 namespace SupermarketPlanner.Managers
 {
     /// <summary>
-    /// 网格管理器 - 负责在场景中创建和管理网格
+    /// Grid Manager - responsible for creating and managing grids in the scene
     /// </summary>
     public class GridManager : MonoBehaviour
     {
-        [Header("网格设置")]
-        [Tooltip("网格单元大小（米）")]
+        [Header("Grid Settings")]
+        [Tooltip("Grid Cell Size (meters)")]
         public float gridCellSize = 1.0f;
 
-        [Tooltip("网格是否可见")]
+        [Tooltip("Is the grid visible")]
         public bool gridVisible = true;
 
-        [Tooltip("网格线条颜色")]
+        [Tooltip("Grid Line Color")]
         public Color gridColor = new Color(0.7f, 0.7f, 0.7f, 0.5f);
 
-        [Tooltip("主轴线颜色（每5或10个单位）")]
+        [Tooltip("Main axis color (every 5 or 10 units)")]
         public Color majorGridColor = new Color(0.5f, 0.5f, 0.5f, 0.7f);
 
-        [Tooltip("每隔多少个单位绘制主轴线")]
+        [Tooltip("Draw the main axis every x units")]
         public int majorGridInterval = 5;
 
-        [Header("网格组件")]
-        [Tooltip("网格线条预制件")]
+        [Header("Grid component")]
+        [Tooltip("Grid line prefab")]
         public GameObject gridLinePrefab;
 
-        // 网格线条对象池
+        // Grid line object pool
         private List<GameObject> horizontalLines = new List<GameObject>();
         private List<GameObject> verticalLines = new List<GameObject>();
 
-        // 当前地板参考
+        // Current floor reference
         private GameObject floorObject;
         private Vector3 floorSize;
         private Vector3 floorPosition;
 
-        // 网格原点 - 添加这个变量来存储网格的左下角原点
+        // Grid origin - add this variable to store the lower left corner of the grid
         private Vector3 gridOrigin;
 
-        // 单例实例
+        // Singleton instance
         public static GridManager Instance { get; private set; }
 
         private void Awake()
         {
-            // 单例模式设置
+            // Singleton mode setting
             if (Instance != null && Instance != this)
             {
                 Destroy(gameObject);
@@ -57,7 +57,7 @@ namespace SupermarketPlanner.Managers
 
         private void Start()
         {
-            // 初始化网格线条预制件
+            // Initialize the grid line prefab
             if (gridLinePrefab == null)
             {
                 CreateDefaultLinePrefab();
@@ -65,13 +65,13 @@ namespace SupermarketPlanner.Managers
         }
 
         /// <summary>
-        /// 创建默认线条预制件
+        /// Create a default line prefab
         /// </summary>
         private void CreateDefaultLinePrefab()
         {
             gridLinePrefab = new GameObject("GridLine");
 
-            // 添加线渲染器组件
+            // Add a line renderer component
             LineRenderer lineRenderer = gridLinePrefab.AddComponent<LineRenderer>();
             lineRenderer.startWidth = 0.02f;
             lineRenderer.endWidth = 0.02f;
@@ -80,12 +80,12 @@ namespace SupermarketPlanner.Managers
             lineRenderer.endColor = gridColor;
             lineRenderer.positionCount = 2;
 
-            // 将预制件设为不可见
+            // Set the prefab to invisible
             gridLinePrefab.SetActive(false);
         }
 
         /// <summary>
-        /// 设置地板引用并创建网格
+        /// Set the floor reference and create the grid
         /// </summary>
         public void SetFloor(GameObject floor, float width, float length)
         {
@@ -93,89 +93,86 @@ namespace SupermarketPlanner.Managers
             floorSize = new Vector3(width, 0.1f, length);
             floorPosition = floor.transform.position;
 
-            // 使用当前设置创建网格
+            // Create the grid using the current settings
             CreateGrid();
         }
 
         /// <summary>
-        /// 创建网格
+        /// Create the grid
         /// </summary>
         public void CreateGrid()
         {
             if (floorObject == null)
             {
-                Debug.LogWarning("GridManager: 未设置地板引用，无法创建网格");
+                Debug.LogWarning("GridManager: Floor reference not set, can't create grid");
                 return;
             }
 
-            // 先清理现有网格
+            // Clear the existing grid first
             ClearGrid();
 
-            // 计算地板边界 - 确保使用准确的边界
+            // Calculate the floor bounds - make sure to use the exact bounds
             Vector3 floorMin = floorPosition - new Vector3(floorSize.x, 0, floorSize.z) / 2f;
             Vector3 floorMax = floorPosition + new Vector3(floorSize.x, 0, floorSize.z) / 2f;
-            
-            // 存储网格原点 (左下角)
+            // Store grid origin (lower left corner)
             gridOrigin = floorMin;
-            
-            // 设置网格高度（略高于地板表面）
+
+            // Set the grid height (slightly above the floor surface)
             float gridHeight = floorPosition.y + 0.05f;
 
-            // 修改网格生成逻辑，确保网格线只在地板范围内绘制
-            // 首先计算有多少个网格单元在地板范围内
+            // Modify the grid generation logic to ensure that the grid lines are only drawn within the floor range
+            // First calculate how many grid cells are within the floor range
             int horizontalCellCount = Mathf.FloorToInt(floorSize.z / gridCellSize) + 1;
             int verticalCellCount = Mathf.FloorToInt(floorSize.x / gridCellSize) + 1;
 
-            // 创建水平线（Z轴方向，从前到后）
+            // Create a horizontal line (Z-axis direction, from front to back)
             for (int i = 0; i <= horizontalCellCount; i++)
             {
                 float z = floorMin.z + i * gridCellSize;
-                
-                // 确保不超出地板边界
+
+                // Make sure it does not exceed the floor boundary
                 if (z > floorMax.z)
                     continue;
 
-                // 计算网格线索引，用于确定是否为主轴线
+                // Calculate the grid line index to determine whether it is the major axis
                 bool isMajor = i % majorGridInterval == 0;
 
-                // 创建的线段起点和终点都应该在地板范围内
+                // The start and end points of the created line segment should be within the floor range
                 Vector3 startPoint = new Vector3(floorMin.x, gridHeight, z);
                 Vector3 endPoint = new Vector3(floorMax.x, gridHeight, z);
 
-                // 创建网格线
+                // Create a grid line
                 GameObject line = CreateGridLine(startPoint, endPoint, isMajor ? majorGridColor : gridColor);
                 horizontalLines.Add(line);
             }
 
-            // 创建垂直线（X轴方向，从左到右）
+            // Create a vertical line (X-axis direction, from left to right)
             for (int i = 0; i <= verticalCellCount; i++)
             {
                 float x = floorMin.x + i * gridCellSize;
-                
-                // 确保不超出地板边界
+
+                // Make sure it does not exceed the floor boundary
                 if (x > floorMax.x)
                     continue;
 
-                // 计算网格线索引，用于确定是否为主轴线
+                // Calculate the grid line index to determine whether it is the main axis
                 bool isMajor = i % majorGridInterval == 0;
 
-                // 创建的线段起点和终点都应该在地板范围内
+                // The start and end points of the created line segment should be within the floor range
                 Vector3 startPoint = new Vector3(x, gridHeight, floorMin.z);
                 Vector3 endPoint = new Vector3(x, gridHeight, floorMax.z);
 
-                // 创建网格线
+                // Create a grid line
                 GameObject line = CreateGridLine(startPoint, endPoint, isMajor ? majorGridColor : gridColor);
                 verticalLines.Add(line);
             }
 
-            // 设置网格可见性
+            // Set grid visibility
             SetGridVisibility(gridVisible);
-
-            Debug.Log($"创建了网格: {horizontalLines.Count} 水平线, {verticalLines.Count} 垂直线");
         }
 
         /// <summary>
-        /// 创建单条网格线
+        /// Create a single grid line
         /// </summary>
         private GameObject CreateGridLine(Vector3 start, Vector3 end, Color color)
         {
@@ -198,13 +195,13 @@ namespace SupermarketPlanner.Managers
 
             return line;
         }
-        
-        /// <summary>
-        /// 清理网格
-        /// </summary>
+
+        /// <summary> 
+        /// Clean up the grid 
+        /// </summary> 
         public void ClearGrid()
         {
-            // 销毁水平线
+            // Destroy the horizontal line 
             foreach (GameObject line in horizontalLines)
             {
                 if (line != null)
@@ -214,7 +211,7 @@ namespace SupermarketPlanner.Managers
             }
             horizontalLines.Clear();
 
-            // 销毁垂直线
+            // Destroy the vertical line 
             foreach (GameObject line in verticalLines)
             {
                 if (line != null)
@@ -226,25 +223,25 @@ namespace SupermarketPlanner.Managers
         }
 
         /// <summary>
-        /// 设置网格单元大小
+        /// Set the grid cell size
         /// </summary>
         public void SetGridCellSize(float size)
         {
-            // 确保大小在有效范围内
+            // Make sure the size is within the valid range
             gridCellSize = Mathf.Clamp(size, 0.1f, 10f);
 
-            // 重新创建网格
+            // Recreate the grid
             CreateGrid();
         }
 
         /// <summary>
-        /// 设置网格可见性
+        /// Set grid visibility
         /// </summary>
         public void SetGridVisibility(bool visible)
         {
             gridVisible = visible;
 
-            // 设置所有网格线的可见性
+            // Set the visibility of all grid lines
             foreach (GameObject line in horizontalLines)
             {
                 if (line != null)
@@ -263,23 +260,23 @@ namespace SupermarketPlanner.Managers
         }
 
         /// <summary>
-        /// 将世界坐标对齐到网格
+        /// Snap world coordinates to grid
         /// </summary>
         public Vector3 SnapToGrid(Vector3 worldPosition)
         {
-            // 计算物体位置相对于网格原点(左下角)的偏移
+            // Calculate the offset of the object's position relative to the grid origin (lower left corner)
             float xOffset = worldPosition.x - gridOrigin.x;
             float zOffset = worldPosition.z - gridOrigin.z;
-            
-            // 将偏移量四舍五入到最近的网格单位
+
+            // Round the offset to the nearest grid unit
             float xGridOffset = Mathf.Round(xOffset / gridCellSize) * gridCellSize;
             float zGridOffset = Mathf.Round(zOffset / gridCellSize) * gridCellSize;
-            
-            // 将网格偏移量转换回世界坐标
+
+            // Convert the grid offset back to world coordinates
             float x = gridOrigin.x + xGridOffset;
             float z = gridOrigin.z + zGridOffset;
-            
-            // 确保位置在地板范围内
+
+            // Make sure the position is within the floor
             Vector3 floorMin = floorPosition - floorSize / 2;
             Vector3 floorMax = floorPosition + floorSize / 2;
 

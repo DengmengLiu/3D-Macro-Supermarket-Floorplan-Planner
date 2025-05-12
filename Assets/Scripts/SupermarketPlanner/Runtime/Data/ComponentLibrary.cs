@@ -5,8 +5,8 @@ using System.Linq;
 namespace SupermarketPlanner.Data
 {
     /// <summary>
-    /// 超市组件库，作为ScriptableObject资源存储所有可用的组件
-    /// </summary>
+/// Supermarket component library, storing all available components as ScriptableObject resources
+/// </summary>
     [CreateAssetMenu(fileName = "SupermarketComponentLibrary", menuName = "Supermarket Planner/Component Library")]
     public class ComponentLibrary : ScriptableObject
     {
@@ -37,7 +37,7 @@ namespace SupermarketPlanner.Data
         public CategoryKeywordMap[] categoryKeywords;
 
         /// <summary>
-        /// 根据类别获取组件列表
+        /// Get component list by category
         /// </summary>
         public List<ComponentData> GetComponentsByCategory(ComponentCategory category)
         {
@@ -45,7 +45,7 @@ namespace SupermarketPlanner.Data
         }
 
         /// <summary>
-        /// 根据关键字搜索组件
+        /// Search components by keyword
         /// </summary>
         public List<ComponentData> SearchComponents(string searchTerm)
         {
@@ -55,17 +55,17 @@ namespace SupermarketPlanner.Data
             searchTerm = searchTerm.ToLower();
 
             return components.Where(c =>
-                !c.isHidden && (
-                    c.displayName.ToLower().Contains(searchTerm) ||
-                    c.description.ToLower().Contains(searchTerm) ||
-                    c.subCategory.ToLower().Contains(searchTerm) ||
-                    c.tags.Any(t => t.ToLower().Contains(searchTerm))
-                )
+            !c.isHidden && (
+            c.displayName.ToLower().Contains(searchTerm) ||
+            c.description.ToLower().Contains(searchTerm) ||
+            c.subCategory.ToLower().Contains(searchTerm) ||
+            c.tags.Any(t => t.ToLower().Contains(searchTerm))
+            )
             ).ToList();
         }
 
         /// <summary>
-        /// 通过ID查找组件
+        /// Find a component by ID
         /// </summary>
         public ComponentData GetComponentById(string id)
         {
@@ -73,11 +73,11 @@ namespace SupermarketPlanner.Data
         }
 
         /// <summary>
-        /// 添加新组件到库中
+        /// Adding new components to the library
         /// </summary>
         public void AddComponent(ComponentData component)
         {
-            // 确保ID不重复
+            // Make sure IDs are not repeated
             if (string.IsNullOrEmpty(component.id))
             {
                 component.id = System.Guid.NewGuid().ToString();
@@ -92,7 +92,7 @@ namespace SupermarketPlanner.Data
         }
 
         /// <summary>
-        /// 从库中移除组件
+        /// Removing a component from a library
         /// </summary>
         public bool RemoveComponent(string id)
         {
@@ -106,27 +106,27 @@ namespace SupermarketPlanner.Data
         }
 
         /// <summary>
-        /// 获取库中的类别列表
+        /// Get a list of categories in a library
         /// </summary>
         public List<ComponentCategory> GetCategories()
         {
             return components
-                .Where(c => !c.isHidden)
-                .Select(c => c.category)
-                .Distinct()
-                .OrderBy(c => c.ToString())
-                .ToList();
+            .Where(c => !c.isHidden)
+            .Select(c => c.category)
+            .Distinct()
+            .OrderBy(c => c.ToString())
+            .ToList();
         }
     }
 
     /// <summary>
-    /// 类别关键字映射，用于自动分类预制件
+    /// Category keyword mapping for automatic categorization of prefabs
     /// </summary>
     [System.Serializable]
     public class CategoryKeywordMap
     {
         public ComponentCategory category;
-        [Tooltip("如果预制件名称包含这些关键字之一，它将被分配给此类别")]
+        [Tooltip("If the prefab name contains one of these keywords it will be assigned to this category")]
         public string[] keywords;
     }
 }

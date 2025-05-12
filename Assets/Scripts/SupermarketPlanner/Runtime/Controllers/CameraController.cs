@@ -1,36 +1,36 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.EventSystems; // 添加这个命名空间来使用EventSystem
+using UnityEngine.EventSystems; // Add this namespace to use EventSystem
 
 public class CameraController : MonoBehaviour
 {
-    [Header("移动设置")]
-    public float moveSpeed = 10f;        // 移动速度
-    public float rotationSpeed = 50f;    // 旋转速度
-    public float zoomSpeed = 15f;        // 缩放速度
-    public float smoothTime = 0.1f;      // 平滑过渡时间
+    [Header("Movement Settings")]
+    public float moveSpeed = 10f; // Movement speed
+    public float rotationSpeed = 50f; // Rotation speed
+    public float zoomSpeed = 15f; // Zoom speed
+    public float smoothTime = 0.1f; // Smooth transition time
 
-    [Header("边界设置")]
-    public bool useBoundaries = true;    // 是否使用边界限制
-    public float minHeight = 2f;         // 最小高度
-    public float maxHeight = 50f;        // 最大高度
-    public float groundOffset = 0.5f;    // 地面偏移量，防止摄像机进入地面
-    public float boundaryMargin = 5f;    // 边界外的额外移动空间
+    [Header("Boundary Settings")]
+    public bool useBoundaries = true; // Whether to use boundary restrictions
+    public float minHeight = 2f; // Minimum height
+    public float maxHeight = 50f; // Maximum height
+    public float groundOffset = 0.5f; // Ground offset to prevent the camera from entering the ground
+    public float boundaryMargin = 5f; // Extra moving space outside the boundary
 
-    [Header("UI交互设置")]
-    public bool ignoreInputOverUI = true; // 是否在UI上忽略输入
+    [Header("UI Interaction Settings")]
+    public bool ignoreInputOverUI = true; // Whether to ignore input on the UI
 
-    // 地板参考和边界
-    private GameObject floorObject;      // 地板对象引用
-    private Vector3 floorSize;           // 地板尺寸
-    private float minX, maxX, minZ, maxZ; // 移动边界
+    // Floor reference and boundary
+    private GameObject floorObject; // Floor object reference
+    private Vector3 floorSize; // Floor size
+    private float minX, maxX, minZ, maxZ; // Move boundary
 
-    // 输入系统引用
-    private InputAction moveAction;      // 移动输入
-    private InputAction rotateAction;    // 旋转输入
-    private InputAction zoomAction;      // 缩放输入
+    // Input system reference
+    private InputAction moveAction; // Move input
+    private InputAction rotateAction; // Rotate input
+    private InputAction zoomAction; // Zoom input
 
-    // 平滑移动变量
+    // Smooth movement variables
     private Vector3 currentVelocity = Vector3.zero;
     private Vector3 targetPosition;
     private float currentZoomVelocity = 0f;
@@ -38,55 +38,53 @@ public class CameraController : MonoBehaviour
     private float currentRotationVelocity = 0f;
     private float targetRotationY = 0f;
 
-    // 摄像机引用
+    // Camera reference
     private Camera cam;
 
     private void Awake()
     {
-        // 获取摄像机引用
+        // Get camera reference
         cam = GetComponent<Camera>();
         if (cam == null)
         {
             cam = Camera.main;
-            Debug.LogWarning("CameraController: 未直接附加到Camera组件，使用主摄像机");
+            Debug.LogWarning("CameraController: Not directly attached to Camera component, use main camera");
         }
 
-        // 初始化目标位置和缩放
+        // Initialize target position and zoom
         targetZoom = cam.orthographic ? cam.orthographicSize : transform.position.y;
         targetRotationY = transform.eulerAngles.y;
 
-        // 创建输入动作
+        // Create input actions
         CreateInputActions();
     }
 
     private void CreateInputActions()
     {
-        // 创建输入动作映射
+        // Create input action map
         var actionMap = new InputActionMap("CameraControls");
 
-        // 移动输入 (WASD/方向键)
+        // Move input (WASD/arrow keys)
         moveAction = actionMap.AddAction("Move", binding: "<Keyboard>/w,<Keyboard>/s,<Keyboard>/a,<Keyboard>/d,<Keyboard>/upArrow,<Keyboard>/downArrow,<Keyboard>/leftArrow,<Keyboard>/rightArrow");
         moveAction.AddCompositeBinding("2DVector")
-            .With("Up", "<Keyboard>/w")
-            .With("Down", "<Keyboard>/s")
-            .With("Left", "<Keyboard>/a")
-            .With("Right", "<Keyboard>/d");
+        .With("Up", "<Keyboard>/w")
+        .With("Down", "<Keyboard>/s")
+        .With("Left", "<Keyboard>/a")
+        .With("Right", "<Keyboard>/d");
         moveAction.AddCompositeBinding("2DVector")
-            .With("Up", "<Keyboard>/upArrow")
-            .With("Down", "<Keyboard>/downArrow")
-            .With("Left", "<Keyboard>/leftArrow")
-            .With("Right", "<Keyboard>/rightArrow");
-
-        // 旋转输入 (QE)
+        .With("Up", "<Keyboard>/upArrow")
+        .With("Down", "<Keyboard>/downArrow")
+        .With("Left", "<Keyboard>/leftArrow")
+        .With("Right", "<Keyboard>/rightArrow"); // Rotation input (QE)
         rotateAction = actionMap.AddAction("Rotate");
         rotateAction.AddCompositeBinding("1DAxis")
-            .With("Negative", "<Keyboard>/q")
-            .With("Positive", "<Keyboard>/e");
+        .With("Negative", "<Keyboard>/q")
+        .With("Positive", "<Keyboard>/e");
 
-        // 缩放输入 (鼠标滚轮)
+        // Zoom input (mouse wheel)
         zoomAction = actionMap.AddAction("Zoom", binding: "<Mouse>/scroll/y");
 
-        // 启用所有输入动作
+        // Enable all input actions
         moveAction.Enable();
         rotateAction.Enable();
         zoomAction.Enable();
@@ -94,7 +92,7 @@ public class CameraController : MonoBehaviour
 
     private void OnDestroy()
     {
-        // 销毁时禁用和释放输入动作
+        // Disable and release input actions on destruction
         moveAction?.Dispose();
         rotateAction?.Dispose();
         zoomAction?.Dispose();
@@ -105,23 +103,23 @@ public class CameraController : MonoBehaviour
         HandleMovement();
         HandleRotation();
         HandleZoom();
-        
-        // 应用平滑移动
+
+        // Apply smooth movement
         ApplySmoothMovement();
     }
 
     private void HandleMovement()
     {
-        // 获取移动输入
+        // Get movement input
         Vector2 moveInput = moveAction.ReadValue<Vector2>();
-        
+
         if (moveInput.sqrMagnitude > 0.01f)
         {
-            // 根据摄像机当前方向计算移动方向
+            // Calculate movement direction based on camera's current direction
             Vector3 forward = new Vector3(transform.forward.x, 0, transform.forward.z).normalized;
             Vector3 right = new Vector3(transform.right.x, 0, transform.right.z).normalized;
-            
-            // 计算目标位置
+
+            // Calculate target position
             Vector3 moveDirection = (forward * moveInput.y + right * moveInput.x) * moveSpeed * Time.deltaTime;
             targetPosition += moveDirection;
         }
@@ -129,40 +127,40 @@ public class CameraController : MonoBehaviour
 
     private void HandleRotation()
     {
-        // 获取旋转输入
+        // Get rotation input
         float rotateInput = rotateAction.ReadValue<float>();
-        
+
         if (Mathf.Abs(rotateInput) > 0.01f)
         {
-            // 计算目标旋转
+            // Calculate target rotation
             targetRotationY += rotateInput * rotationSpeed * Time.deltaTime;
         }
     }
 
     private void HandleZoom()
     {
-        // 如果鼠标在UI上，并且设置了忽略UI上的输入，则不处理缩放
+        // If the mouse is on the UI and the input on the UI is set to be ignored, zoom is not processed
         if (ignoreInputOverUI && IsPointerOverUI())
         {
             return;
         }
-        
-        // 获取缩放输入 (鼠标滚轮)
+
+        // Get zoom input (mouse wheel)
         float zoomInput = zoomAction.ReadValue<float>();
-        
+
         if (Mathf.Abs(zoomInput) > 0.01f)
         {
-            // 计算目标缩放 (反向滚动)
+            // Calculate target zoom (reverse scrolling)
             float zoomDelta = -zoomInput * zoomSpeed * Time.deltaTime;
-            
+
             if (cam.orthographic)
             {
-                // 正交相机使用正交大小
+                // Orthogonal camera uses orthogonal size
                 targetZoom = Mathf.Clamp(targetZoom + zoomDelta, minHeight, maxHeight);
             }
             else
             {
-                // 透视相机使用Y位置
+                //Perspective camera uses Y position
                 targetZoom = Mathf.Clamp(targetZoom + zoomDelta, minHeight, maxHeight);
             }
         }
@@ -170,27 +168,27 @@ public class CameraController : MonoBehaviour
 
     private void ApplySmoothMovement()
     {
-        // 应用平滑移动
+        // Apply smooth movement
         transform.position = Vector3.SmoothDamp(transform.position, targetPosition, ref currentVelocity, smoothTime);
-        
-        // 应用平滑旋转
+
+        // Apply smooth rotation
         float currentRotationY = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetRotationY, ref currentRotationVelocity, smoothTime);
         transform.rotation = Quaternion.Euler(transform.eulerAngles.x, currentRotationY, transform.eulerAngles.z);
-        
-        // 根据相机类型应用平滑缩放
+
+        // Apply smooth scaling based on camera type
         if (cam.orthographic)
         {
             cam.orthographicSize = Mathf.SmoothDamp(cam.orthographicSize, targetZoom, ref currentZoomVelocity, smoothTime);
         }
         else
         {
-            // 对于透视相机，调整Y位置作为缩放
+            // For perspective camera, adjust Y position as zoom
             Vector3 position = transform.position;
             position.y = Mathf.SmoothDamp(position.y, targetZoom, ref currentZoomVelocity, smoothTime);
             transform.position = position;
         }
-        
-        // 应用边界限制
+
+        // Apply boundary limits
         if (useBoundaries)
         {
             ApplyBoundaries();
@@ -199,60 +197,60 @@ public class CameraController : MonoBehaviour
 
     private void ApplyBoundaries()
     {
-        // 获取当前位置
+        // Get current position
         Vector3 position = transform.position;
-        
-        // 限制高度
-        // 检测地面高度（如果有碰撞体）
+
+        // Limit height
+        // Check ground height (if there is a collision body)
         if (Physics.Raycast(new Vector3(position.x, maxHeight, position.z), Vector3.down, out RaycastHit hit))
         {
             float minAllowedHeight = hit.point.y + groundOffset;
             position.y = Mathf.Max(position.y, minAllowedHeight);
         }
-        
-        // 应用高度限制
+
+        // Apply height constraint
         position.y = Mathf.Clamp(position.y, minHeight, maxHeight);
-        
-        // 如果地板已设置，应用XZ平面边界限制
+
+        // If floor is set, apply XZ plane bounds constraint
         if (floorObject != null)
         {
             position.x = Mathf.Clamp(position.x, minX, maxX);
             position.z = Mathf.Clamp(position.z, minZ, maxZ);
         }
-        
-        // 更新目标位置和当前位置
+
+        // Update target and current positions
         targetPosition = new Vector3(
-            Mathf.Clamp(targetPosition.x, minX, maxX),
-            targetPosition.y,
-            Mathf.Clamp(targetPosition.z, minZ, maxZ)
+        Mathf.Clamp(targetPosition.x, minX, maxX),
+        targetPosition.y,
+        Mathf.Clamp(targetPosition.z, minZ, maxZ)
         );
         transform.position = position;
     }
 
-    // 设置边界限制的方法 (由FloorInitManager调用)
+    // Method to set bounds (called by FloorInitManager)
     public void SetBoundaries(GameObject floor, float width, float length)
     {
         floorObject = floor;
         floorSize = new Vector3(width, 0.1f, length);
-        
-        // 计算边界
-        // 地板坐标系中心在中央，边界扩展boundaryMargin个单位
+
+        // Calculate the boundary
+        // The center of the floor coordinate system is in the center, and the boundary extends boundaryMargin units
         minX = -width / 2 - boundaryMargin;
         maxX = width / 2 + boundaryMargin;
         minZ = -length / 2 - boundaryMargin;
         maxZ = length / 2 + boundaryMargin;
-        
-        Debug.Log($"Camera boundaries set: X({minX} to {maxX}), Z({minZ} to {maxZ})");
+
+        // Debug.Log($"Camera boundaries set: X({minX} to {maxX}), Z({minZ} to {maxZ})");
     }
-    
-    // 检查鼠标指针是否位于UI元素上
+
+    // Check if the mouse pointer is over a UI element
     private bool IsPointerOverUI()
     {
-        // 检查当前是否有EventSystem
+        // Check if there is an EventSystem
         if (EventSystem.current == null)
             return false;
-            
-        // 检查指针是否在UI元素上
+
+        // Check if the pointer is over a UI element
         return EventSystem.current.IsPointerOverGameObject();
     }
 }

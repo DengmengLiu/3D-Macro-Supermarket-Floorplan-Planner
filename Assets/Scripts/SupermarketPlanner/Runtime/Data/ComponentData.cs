@@ -4,50 +4,50 @@ using System;
 namespace SupermarketPlanner.Data
 {
     /// <summary>
-    /// 表示超市规划工具中单个组件的数据
+    /// Represents the data of a single component in the supermarket planning tool
     /// </summary>
     [Serializable]
     public class ComponentData
     {
-        [Header("基础信息")]
-        [Tooltip("组件显示名称")]
+        [Header("Basic Information")]
+        [Tooltip("Component Display Name")]
         public string displayName;
-        
-        [Tooltip("组件内部ID（自动生成）")]
+
+        [Tooltip("Component Internal ID (Automatically Generated)")]
         public string id;
-        
-        [Tooltip("组件预制件引用")]
+
+        [Tooltip("Component Prefab Reference")]
         public GameObject prefab;
-        
-        [Tooltip("组件图标")]
+
+        [Tooltip("Component Icon")]
         public Sprite icon;
-        
-        [Header("分类信息")]
-        [Tooltip("组件类别（如Shelf, Fridge, Checkout, Wall等）")]
+
+        [Header("Classification Information")]
+        [Tooltip("Component Category (such as Shelf, Fridge, Checkout, Wall, etc.)")]
         public ComponentCategory category;
-        
-        [Tooltip("子类别（例如货架可以有'端货架'、'标准货架'等子类别）")]
+
+        [Tooltip("Subcategory (for example, a shelf can have subcategories such as 'End Shelf' and 'Standard Shelf')")]
         public string subCategory;
-        
-        [Tooltip("标签（可用于搜索和过滤）")]
+
+        [Tooltip("Tags (can be used for searching and filtering)")]
         public string[] tags;
-        
-        [Header("显示信息")]
-        [Tooltip("组件简短描述")]
+
+        [Header("Display information")]
+        [Tooltip("Component brief description")]
         [TextArea(1, 3)]
         public string description;
-        
-        [Tooltip("是否在组件库中隐藏此组件")]
+
+        [Tooltip("Hide this component in the component library")]
         public bool isHidden = false;
-        
-        [Header("物理属性")]
-        [Tooltip("组件尺寸（单位：米）")]
+
+        [Header("Physical properties")]
+        [Tooltip("Component dimensions (unit: meter)")]
         public Vector3 dimensions = Vector3.one;
-        
-        [Tooltip("组件价格（可用于统计功能）")]
+
+        [Tooltip("Component price (can be used for statistical functions)")]
         public float price;
-        
-        // 自定义构造函数
+
+        // Custom constructor
         public ComponentData(string name, GameObject prefabRef, ComponentCategory componentCategory = ComponentCategory.Other)
         {
             displayName = name;
@@ -55,23 +55,23 @@ namespace SupermarketPlanner.Data
             category = componentCategory;
             id = Guid.NewGuid().ToString();
         }
-        
-        // 重写ToString方法，便于调试
+
+        // Override the ToString method for easy debugging
         public override string ToString()
         {
             return $"{displayName} ({category})";
         }
     }
-    
+
     /// <summary>
-    /// 组件类别枚举
+    /// Component category enumeration
     /// </summary>
     public enum ComponentCategory
     {
-        Shelf,      // 货架
-        Fridge,     // 冰箱/冷柜
-        Checkout,   // 收银台/结账区
-        Wall,       // 墙/隔断
-        Other       // 其他
+        Shelf, // Shelf
+        Fridge, // Refrigerator/Freezer
+        Checkout, // Cashier/Checkout Area
+        Wall, // Wall/Partition
+        Other // Other
     }
 }

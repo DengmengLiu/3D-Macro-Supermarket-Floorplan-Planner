@@ -5,11 +5,11 @@ using System;
 namespace SupermarketPlanner.Controllers
 {
     /// <summary>
-    /// 处理放置相关的输入操作，包括点击、旋转、取消等
+    /// Handle placement-related input operations, including click, rotate, cancel, etc.
     /// </summary>
-    public class PlacementInputHandler : MonoBehaviour  // 继承自MonoBehaviour而不是普通类
+    public class PlacementInputHandler : MonoBehaviour
     {
-        // 输入动作
+        // Input action
         private InputAction mousePositionAction;
         private InputAction leftMouseAction;
         private InputAction rightMouseAction;
@@ -19,7 +19,7 @@ namespace SupermarketPlanner.Controllers
 
         private InputActionMap actionMap;
 
-        // 事件
+        // Event
         public event Action OnLeftClick;
         public event Action OnRightClick;
         public event Action OnRotate;
@@ -109,7 +109,7 @@ namespace SupermarketPlanner.Controllers
         }
 
         /// <summary>
-        /// 获取鼠标位置
+        /// Get the mouse position
         /// </summary>
         public Vector2 GetMousePosition()
         {
@@ -117,7 +117,7 @@ namespace SupermarketPlanner.Controllers
         }
 
         /// <summary>
-        /// 获取输入动作
+        /// Get input action
         /// </summary>
         public InputAction GetMousePositionAction()
         {

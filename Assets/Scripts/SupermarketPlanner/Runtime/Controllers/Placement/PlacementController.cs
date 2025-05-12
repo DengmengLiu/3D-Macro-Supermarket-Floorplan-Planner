@@ -6,56 +6,56 @@ using System;
 namespace SupermarketPlanner.Controllers
 {
     /// <summary>
-    /// 放置控制器 - 协调预览、网格对齐和放置服务
+    /// Placement Controller - Coordinates preview, grid snapping, and placement services
     /// </summary>
     public class PlacementController : MonoBehaviour
     {
-        [Header("服务引用")]
-        [Tooltip("预览管理器")]
+        [Header("Service Reference")]
+        [Tooltip("Preview Manager")]
         public PlacementPreviewManager previewManager;
 
-        [Tooltip("网格对齐服务")]
+        [Tooltip("Grid Alignment Service")]
         public GridAlignmentService gridAlignmentService;
 
-        [Tooltip("新的简化放置验证服务")]
+        [Tooltip("New Simplified Placement Validation Service")]
         public PlacementValidationService validationService;
 
-        [Tooltip("组件放置服务")]
+        [Tooltip("Component Placement Service")]
         public ComponentPlacementService placementService;
 
-        [Header("设置")]
-        [Tooltip("放置层掩码")]
+        [Header("Settings")]
+        [Tooltip("Placement Layer Mask")]
         public LayerMask placementLayerMask;
 
-        [Tooltip("放置模式激活时的光标")]
+        [Tooltip("Cursor when placement mode is active")]
         public Texture2D placementCursor;
 
-        [Tooltip("是否启用网格对齐")]
+        [Tooltip("Is grid snapping enabled")]
         public bool snapToGrid = true;
 
-        // 放置状态
+        // Placement state
         private bool isPlacementModeActive = false;
         private ComponentData currentComponent = null;
 
-        // 输入处理器
+        // Input handler
         private PlacementInputHandler inputHandler;
 
-        // 事件
+        // Event
         public event Action<bool> OnPlacementModeChanged;
         public event Action<GameObject> OnComponentPlaced;
 
         private void Awake()
         {
-            // 初始化输入处理器
+            // Initialize input handler
             inputHandler = gameObject.AddComponent<PlacementInputHandler>();
 
-            // 查找或创建必要的服务
+            // Find or create necessary services
             FindOrCreateServices();
         }
 
         private void OnEnable()
         {
-            // 设置输入事件
+            // Setup input events
             SetupInputEvents();
         }
 
@@ -63,14 +63,14 @@ namespace SupermarketPlanner.Controllers
         {
             if (placementLayerMask.value == 0)
             {
-                // 排除网格层，假设你已创建了名为"Grid"的层
+                // Exclude grid layer, assuming you have created a layer named "Grid"
                 placementLayerMask = ~(1 << LayerMask.NameToLayer("Grid"));
             }
 
-            // 设置验证服务的允许碰撞层
+            // Set validation service's allowed collision layer
             if (validationService != null)
             {
-                // 设置地板层为允许碰撞的层
+                // Set floor layer as collision-enabled layer
                 int floorLayer = LayerMask.NameToLayer("Floor");
                 if (floorLayer != -1)
                 {
@@ -81,7 +81,7 @@ namespace SupermarketPlanner.Controllers
 
         private void OnDisable()
         {
-            // 如果处于放置模式，退出放置模式
+            // If in placement mode, exit placement mode
             if (isPlacementModeActive)
             {
                 CancelPlacement();
@@ -89,11 +89,11 @@ namespace SupermarketPlanner.Controllers
         }
 
         /// <summary>
-        /// 查找或创建必要的服务
+        /// Find or create necessary services
         /// </summary>
         private void FindOrCreateServices()
         {
-            // 查找预览管理器
+            // Find preview manager
             if (previewManager == null)
             {
                 previewManager = GetComponent<PlacementPreviewManager>();
@@ -103,7 +103,7 @@ namespace SupermarketPlanner.Controllers
                 }
             }
 
-            // 查找网格对齐服务
+            // Find grid alignment service
             if (gridAlignmentService == null)
             {
                 gridAlignmentService = GetComponent<GridAlignmentService>();
@@ -113,7 +113,7 @@ namespace SupermarketPlanner.Controllers
                 }
             }
 
-            // 查找新的简化放置验证服务
+            // Find the new simplified placement validation service
             if (validationService == null)
             {
                 validationService = GetComponent<PlacementValidationService>();
@@ -123,7 +123,7 @@ namespace SupermarketPlanner.Controllers
                 }
             }
 
-            // 查找组件放置服务
+            // Find component placement service
             if (placementService == null)
             {
                 placementService = GetComponent<ComponentPlacementService>();
@@ -135,14 +135,13 @@ namespace SupermarketPlanner.Controllers
         }
 
         /// <summary>
-        /// 设置输入事件
+        /// Set input events
         /// </summary>
         private void SetupInputEvents()
         {
             if (inputHandler == null)
                 return;
-
-            // 设置输入回调
+            // Set input callback
             inputHandler.OnLeftClick += HandleLeftClick;
             inputHandler.OnRightClick += HandleRightClick;
             inputHandler.OnRotate += HandleRotate;
@@ -151,19 +150,19 @@ namespace SupermarketPlanner.Controllers
 
         private void Update()
         {
-            // 如果不在放置模式，不处理
+            // If not in placement mode, do not process
             if (!isPlacementModeActive)
                 return;
 
-            // 更新预览
+            // Update preview
             UpdatePreview();
 
-            // 使用新的验证服务实时检查是否可以放置
+            // Use the new validation service to check whether it can be placed in real time
             CheckPlacementValidity();
         }
 
         /// <summary>
-        /// 实时检查放置有效性并更新预览颜色
+        /// Check placement validity in real time and update preview color
         /// </summary>
         private void CheckPlacementValidity()
         {
@@ -174,65 +173,65 @@ namespace SupermarketPlanner.Controllers
             if (previewObject == null)
                 return;
 
-            // 使用新的验证服务检查是否可以放置
+            // Check if placement is possible using new validation service
             bool canPlace = validationService.CanPlace(previewObject);
 
-            // 更新预览对象的颜色
+            // Update the color of the preview object
             previewManager.UpdatePreviewColor(canPlace);
         }
 
         /// <summary>
-        /// 开始放置模式
+        /// Start placement mode
         /// </summary>
         public void StartPlacement(ComponentData componentData)
         {
             if (componentData == null || componentData.prefab == null)
             {
-                Debug.LogError("无法开始放置：组件数据或预制件为空");
+                Debug.LogError("Unable to start placement: component data or prefab is empty");
                 return;
             }
 
-            // 如果已经在放置模式，先取消
+            // If already in placement mode, cancel first
             if (isPlacementModeActive)
             {
                 CancelPlacement();
             }
 
-            // 保存当前组件
+            // Save current component
             currentComponent = componentData;
 
-            // 创建预览
+            // Create preview
             previewManager.CreatePreview(componentData);
 
-            // 设置光标
+            // Set cursor
             SetPlacementCursor(true);
 
-            // 进入放置模式
+            // Enter placement mode
             isPlacementModeActive = true;
 
-            // 触发事件
+            // Trigger event
             OnPlacementModeChanged?.Invoke(true);
 
-            Debug.Log($"开始放置模式: {componentData.displayName}");
+            // Debug.Log($"Start placement mode: {componentData.displayName}");
         }
 
         /// <summary>
-        /// 更新预览
+        /// Update preview
         /// </summary>
         private void UpdatePreview()
         {
-            // 更新预览位置
+            // Update preview position
             previewManager.UpdatePreview();
 
-            // 获取预览位置
+            // Get preview position
             Vector3 previewPosition = previewManager.GetTargetPosition();
 
-            // 应用网格对齐
+            // Apply grid alignment
             if (gridAlignmentService != null && snapToGrid)
             {
                 previewPosition = gridAlignmentService.AlignToGrid(previewPosition);
 
-                // 将对齐后的位置应用回预览对象
+                // Apply aligned position back to preview object
                 GameObject previewObject = previewManager.GetPreviewObject();
                 if (previewObject != null)
                 {
@@ -242,33 +241,26 @@ namespace SupermarketPlanner.Controllers
         }
 
         /// <summary>
-        /// 处理左键点击
+        /// Handle left click
         /// </summary>
         private void HandleLeftClick()
         {
             if (!isPlacementModeActive)
                 return;
 
-            // 获取预览对象
+            // Get preview object
             GameObject previewObject = previewManager.GetPreviewObject();
             if (previewObject == null)
                 return;
-
-            // 使用新的验证服务检查是否可以放置
+            // Check if placement is possible using new validation service
             bool canPlace = validationService.CanPlace(previewObject);
-
             if (canPlace)
             {
                 PlaceCurrentComponent();
             }
-            else
-            {
-                Debug.Log("无法放置：与其他对象碰撞");
-            }
         }
-
         /// <summary>
-        /// 处理右键点击
+        /// Handle right click
         /// </summary>
         private void HandleRightClick()
         {
@@ -279,7 +271,7 @@ namespace SupermarketPlanner.Controllers
         }
 
         /// <summary>
-        /// 处理旋转键
+        /// Handle rotation key
         /// </summary>
         private void HandleRotate()
         {
@@ -290,7 +282,7 @@ namespace SupermarketPlanner.Controllers
         }
 
         /// <summary>
-        /// 处理取消键
+        /// Handle cancel key
         /// </summary>
         private void HandleCancel()
         {
@@ -301,7 +293,7 @@ namespace SupermarketPlanner.Controllers
         }
 
         /// <summary>
-        /// 放置当前组件
+        /// Place the current component
         /// </summary>
         private void PlaceCurrentComponent()
         {
@@ -333,7 +325,7 @@ namespace SupermarketPlanner.Controllers
         }
 
         /// <summary>
-        /// 递归设置游戏对象及其所有子对象的层
+        /// Recursively set the layer of the game object and all its children
         /// </summary>
         private void SetLayerRecursively(GameObject obj, int layer)
         {
@@ -349,53 +341,53 @@ namespace SupermarketPlanner.Controllers
         }
 
         /// <summary>
-        /// 取消放置
+        /// Cancel placement
         /// </summary>
         public void CancelPlacement()
         {
-            // 清理放置模式
+            // Clear placement mode
             ClearPlacementMode();
 
-            // 退出放置模式
+            // Exit placement mode
             EndPlacementMode();
         }
 
         /// <summary>
-        /// 清理放置模式
+        /// Clear placement mode
         /// </summary>
         private void ClearPlacementMode()
         {
-            // 清理预览
+            // Clear preview
             previewManager.ClearPreview();
         }
 
         /// <summary>
-        /// 退出放置模式
+        /// Exit placement mode
         /// </summary>
         private void EndPlacementMode()
         {
-            // 重置状态
+            // Reset state
             isPlacementModeActive = false;
             currentComponent = null;
 
-            // 恢复光标
+            // Restore cursor
             SetPlacementCursor(false);
 
-            // 触发事件
+            // Trigger event
             OnPlacementModeChanged?.Invoke(false);
         }
 
         /// <summary>
-        /// 旋转预览
+        /// Rotate preview
         /// </summary>
         private void RotatePreview()
         {
-            // 旋转预览对象
+            // Rotate preview object
             previewManager.RotatePreview();
         }
 
         /// <summary>
-        /// 设置网格对齐状态
+        /// Set grid alignment state
         /// </summary>
         public void SetSnapToGrid(bool enabled)
         {
@@ -403,7 +395,7 @@ namespace SupermarketPlanner.Controllers
         }
 
         /// <summary>
-        /// 设置放置光标
+        /// Set placement cursor
         /// </summary>
         private void SetPlacementCursor(bool showPlacementCursor)
         {
@@ -418,7 +410,7 @@ namespace SupermarketPlanner.Controllers
         }
 
         /// <summary>
-        /// 检查是否处于放置模式
+        /// Check if it is in placement mode
         /// </summary>
         public bool IsInPlacementMode()
         {
@@ -426,7 +418,7 @@ namespace SupermarketPlanner.Controllers
         }
 
         /// <summary>
-        /// 获取当前选中的组件
+        /// Get the currently selected component
         /// </summary>
         public ComponentData GetCurrentComponent()
         {

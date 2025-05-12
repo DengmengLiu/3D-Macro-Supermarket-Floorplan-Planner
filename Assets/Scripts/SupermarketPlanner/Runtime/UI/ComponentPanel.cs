@@ -344,7 +344,7 @@ namespace SupermarketPlanner.UI
         /// </summary>
         private void OnComponentSelected(ComponentData component)
         {
-            Debug.Log($"Selected component: {component.displayName}");
+            // Debug.Log($"Selected component: {component.displayName}");
             
             // 启动放置模式
             if (placementController != null && component != null)

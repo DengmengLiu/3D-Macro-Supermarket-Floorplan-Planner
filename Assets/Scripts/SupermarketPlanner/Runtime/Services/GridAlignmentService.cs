@@ -4,137 +4,137 @@ using SupermarketPlanner.Managers;
 namespace SupermarketPlanner.Services
 {
     /// <summary>
-    /// 网格对齐服务 - 负责处理对象到网格的对齐功能
+    /// Grid Alignment Service - responsible for handling object to grid alignment
     /// </summary>
     public class GridAlignmentService : MonoBehaviour
     {
-        [Header("网格设置")]
-        [Tooltip("是否启用网格对齐")]
+        [Header("Grid Settings")]
+        [Tooltip("Enable grid alignment")]
         public bool enableGridAlignment = true;
-        
-        [Tooltip("网格切换阈值 (防止在网格边界徘徊时闪烁)")]
+
+        [Tooltip("Grid switching threshold (prevents flickering when hovering at the grid boundary)")]
         public float gridSwitchThreshold = 0.1f;
-        
-        // 上次捕捉的网格位置
+
+        // Last snapped grid position
         private Vector3 lastSnappedPosition;
-        
-        // 延迟切换计时器
+
+        // Delayed switching timer
         private float positionSwitchTimer = 0f;
-        
-        // 网格管理器引用
+
+        // Grid manager reference
         private GridManager gridManager;
-        
+
         private void Start()
         {
-            // 获取网格管理器引用
+            // Get grid manager reference
             gridManager = GridManager.Instance;
             if (gridManager == null)
             {
-                Debug.LogWarning("GridAlignmentService: 未找到GridManager，将使用默认网格尺寸");
+                Debug.LogWarning("GridAlignmentService: GridManager not found, using default grid size");
             }
         }
-        
+
         /// <summary>
-        /// 将位置对齐到网格
+        /// Align position to grid
         /// </summary>
         public Vector3 AlignToGrid(Vector3 worldPosition)
         {
-            // 如果未启用网格对齐或网格管理器不可用，直接返回原始位置
+            // If grid alignment is not enabled or grid manager is not available, just return to original position
             if (!enableGridAlignment || gridManager == null)
             {
                 return worldPosition;
             }
-            
-            // 获取对齐到网格的位置
+
+            // Get position aligned to grid
             Vector3 snappedPosition = gridManager.SnapToGrid(worldPosition);
-            
-            // 检查是否需要切换到新的网格位置
+
+            // Check if we need to switch to new grid position
             bool shouldSwitchToNewPosition = ShouldSwitchToNewPosition(snappedPosition);
-            
-            // 更新计时器
+
+            // Update timer
             positionSwitchTimer += Time.deltaTime;
-            
+
             if (shouldSwitchToNewPosition)
             {
-                // 切换到新位置
+                // Switch to new position
                 lastSnappedPosition = snappedPosition;
                 positionSwitchTimer = 0f;
                 return snappedPosition;
             }
             else
             {
-                // 保持在上一个网格位置
+                // Stay at the last grid position
                 return lastSnappedPosition;
             }
         }
-        
+
         /// <summary>
-        /// 决定是否应该切换到新的网格位置
+        /// Decide whether to switch to a new grid position
         /// </summary>
         private bool ShouldSwitchToNewPosition(Vector3 newSnappedPosition)
         {
-            // 如果是第一次对齐，直接返回true
+            // If it is the first snap, return true directly
             if (lastSnappedPosition == Vector3.zero)
             {
                 return true;
             }
-            
-            // 计算与上一个网格位置的距离
+
+            // Calculate the distance from the last grid position
             float distance = Vector3.Distance(newSnappedPosition, lastSnappedPosition);
-            
-            // 如果距离足够大，立即切换
+
+            // If the distance is large enough, switch immediately
             if (distance >= (gridManager?.gridCellSize ?? 1.0f))
             {
                 return true;
             }
-            
-            // 如果位置有变化但不大，使用计时器防止频繁切换
+
+            // If the position changes but not much, use a timer to prevent frequent switching
             if (distance > 0)
             {
-                // 如果鼠标已经在同一区域停留足够长时间，切换位置
+                // If the mouse has been in the same area for a long enough time, switch the position
                 if (positionSwitchTimer > 0.3f)
                 {
                     return true;
                 }
             }
-            
+
             return false;
         }
-        
+
         /// <summary>
-        /// 设置网格对齐状态
+        /// Set the grid alignment state
         /// </summary>
         public void SetGridAlignmentEnabled(bool enabled)
         {
             enableGridAlignment = enabled;
-            
-            // 重置上次对齐位置和计时器
+
+            // Reset the last alignment position and timer
             if (enabled)
             {
                 lastSnappedPosition = Vector3.zero;
                 positionSwitchTimer = 0f;
             }
         }
-        
+
         /// <summary>
-        /// 获取网格单元格大小
+        /// Get the grid cell size
         /// </summary>
         public float GetGridCellSize()
         {
             return gridManager?.gridCellSize ?? 1.0f;
         }
-        
+
         /// <summary>
-        /// 重置对齐状态
+        /// Reset alignment state
         /// </summary>
         public void ResetAlignment()
         {
             lastSnappedPosition = Vector3.zero;
             positionSwitchTimer = 0f;
         }
-        
+
         /// <summary>
-        /// 设置最后一个已对齐的位置
+        /// Set the last aligned position
         /// </summary>
         public void SetLastSnappedPosition(Vector3 position)
         {
