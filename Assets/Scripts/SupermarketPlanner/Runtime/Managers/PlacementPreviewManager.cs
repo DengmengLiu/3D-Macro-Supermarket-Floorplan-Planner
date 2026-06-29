@@ -40,8 +40,8 @@ namespace SupermarketPlanner.Controllers
         // Rotation angle
         private float previewRotation = 0f;
 
-        // Input handler
-        private InputAction mousePositionAction;
+        // Reference to PlacementInputHandler for shared mouse position input
+        private PlacementInputHandler inputHandler;
 
         // Track materials created for preview so they can be cleaned up
         private List<Material> previewMaterialInstances = new List<Material>();
@@ -75,9 +75,22 @@ namespace SupermarketPlanner.Controllers
                 previewMaterial.renderQueue = 3000;
             }
 
-            // Create mouse position input action
-            mousePositionAction = new InputAction("MousePosition", binding: "<Mouse>/position");
-            mousePositionAction.Enable();
+        }
+
+        private void Start()
+        {
+            // Obtain reference to PlacementInputHandler instead of creating a duplicate InputAction.
+            // Moved to Start() because PlacementController.Awake() adds PlacementInputHandler via AddComponent,
+            // and Unity does not guarantee execution order between different scripts' Awake() calls.
+            inputHandler = GetComponent<PlacementInputHandler>();
+            if (inputHandler == null)
+            {
+                inputHandler = FindObjectOfType<PlacementInputHandler>();
+            }
+            if (inputHandler == null)
+            {
+                Debug.LogError("PlacementPreviewManager: No PlacementInputHandler found in scene. Mouse position input will not be available.");
+            }
         }
 
         /// <summary>
@@ -209,8 +222,8 @@ namespace SupermarketPlanner.Controllers
             if (previewObject == null)
                 return;
 
-            // Get mouse position
-            Vector2 mousePos = mousePositionAction.ReadValue<Vector2>();
+            // Get mouse position from shared PlacementInputHandler
+            Vector2 mousePos = inputHandler?.GetMousePosition() ?? Vector2.zero;
             Vector3 worldPos = GetWorldPosition(mousePos);
 
             // Set preview object position
