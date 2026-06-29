@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using SupermarketPlanner.Data;
 using System;
+using System.Collections.Generic;
 
 namespace SupermarketPlanner.Controllers
 {
@@ -41,6 +42,9 @@ namespace SupermarketPlanner.Controllers
 
         // Input handler
         private InputAction mousePositionAction;
+
+        // Track materials created for preview so they can be cleaned up
+        private List<Material> previewMaterialInstances = new List<Material>();
 
         private void Awake()
         {
@@ -158,6 +162,7 @@ namespace SupermarketPlanner.Controllers
             {
                 // Make a copy of the preview material and apply 
                 Material previewMaterialInstance = new Material(previewMaterial);
+                previewMaterialInstances.Add(previewMaterialInstance);
 
                 // If the original material has a main texture, keep it
                 if (renderer.material.mainTexture != null)
@@ -313,6 +318,14 @@ namespace SupermarketPlanner.Controllers
                 Destroy(previewObject);
                 previewObject = null;
             }
+
+            // Destroy all material instances created for the preview to prevent GPU memory leaks
+            foreach (Material mat in previewMaterialInstances)
+            {
+                if (mat != null)
+                    Destroy(mat);
+            }
+            previewMaterialInstances.Clear();
         }
 
         /// <summary> 

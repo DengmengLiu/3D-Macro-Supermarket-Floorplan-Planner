@@ -77,7 +77,7 @@ namespace SupermarketPlanner.Controllers
                     validationService.allowedCollisionLayers = 1 << floorLayer;
                 }
             }
-            FindAnyObjectByType<CameraViewController>()?.GetComponent<CameraViewController>();
+            // Camera reference retrieved during initialization if needed by other systems
         }
 
         private void OnDisable()

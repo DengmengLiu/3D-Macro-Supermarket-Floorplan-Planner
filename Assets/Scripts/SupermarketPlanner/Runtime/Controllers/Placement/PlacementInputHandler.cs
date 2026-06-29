@@ -90,22 +90,29 @@ namespace SupermarketPlanner.Controllers
 
         private void OnLeftMousePerformed(InputAction.CallbackContext context)
         {
-            OnLeftClick?.Invoke();
+            // Only fire on press, not release (ReadValueAsButton is true only while held)
+            if (context.ReadValueAsButton())
+                OnLeftClick?.Invoke();
         }
 
         private void OnRightMousePerformed(InputAction.CallbackContext context)
         {
-            OnRightClick?.Invoke();
+            if (context.ReadValueAsButton())
+                OnRightClick?.Invoke();
         }
 
         private void OnRotatePerformed(InputAction.CallbackContext context)
         {
-            OnRotate?.Invoke();
+            // Button actions fire performed on both press and release;
+            // ReadValueAsButton filters out the release event
+            if (context.ReadValueAsButton())
+                OnRotate?.Invoke();
         }
 
         private void OnCancelPerformed(InputAction.CallbackContext context)
         {
-            OnCancel?.Invoke();
+            if (context.ReadValueAsButton())
+                OnCancel?.Invoke();
         }
 
         /// <summary>
