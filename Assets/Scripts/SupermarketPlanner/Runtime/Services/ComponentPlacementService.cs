@@ -178,7 +178,7 @@ namespace SupermarketPlanner.Services
         }
 
         /// <summary>
-        /// 获取组件类型
+        /// Get the component type
         /// </summary>
         public ComponentCategory GetComponentCategory()
         {

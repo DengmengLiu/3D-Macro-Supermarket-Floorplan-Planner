@@ -224,7 +224,7 @@ namespace SupermarketPlanner.Controllers
             Camera currentCamera = Camera.main;
             if (currentCamera == null)
             {
-                Debug.LogError("未找到活跃的摄像机");
+                Debug.LogError("No active camera found");
                 return Vector3.zero;
             }
 

@@ -249,13 +249,13 @@ namespace SupermarketPlanner.Controllers
             if (!isPlacementModeActive)
                 return;
 
-            // 获取预览对象
+            // Get preview object
             GameObject previewObject = previewManager.GetPreviewObject();
             if (previewObject == null)
                 return;
 
-            // 使用当前活跃摄像机的射线进行碰撞检测
-            // 使用新的验证服务检查是否可以放置
+            // Use raycast from the currently active camera for collision detection
+            // Use the new validation service to check if placement is possible
             bool canPlace = validationService.CanPlace(previewObject);
 
             if (canPlace)
@@ -264,7 +264,7 @@ namespace SupermarketPlanner.Controllers
             }
             else
             {
-                Debug.Log("无法放置：与其他对象碰撞");
+                Debug.Log("Cannot place: collides with another object");
             }
         }
         /// <summary>
