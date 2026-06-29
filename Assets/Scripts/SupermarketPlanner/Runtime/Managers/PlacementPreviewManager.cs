@@ -75,7 +75,13 @@ namespace SupermarketPlanner.Controllers
                 previewMaterial.renderQueue = 3000;
             }
 
-            // Obtain reference to PlacementInputHandler instead of creating a duplicate InputAction
+        }
+
+        private void Start()
+        {
+            // Obtain reference to PlacementInputHandler instead of creating a duplicate InputAction.
+            // Moved to Start() because PlacementController.Awake() adds PlacementInputHandler via AddComponent,
+            // and Unity does not guarantee execution order between different scripts' Awake() calls.
             inputHandler = GetComponent<PlacementInputHandler>();
             if (inputHandler == null)
             {
